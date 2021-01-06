@@ -29,14 +29,9 @@ fn get_default_interface() -> NetworkInterface {
     interface.clone()
 }
 
-// send a ping packet
-fn send_ping() {
-    // get default interface
-    let interface = get_default_interface();
-    println!("Sending echo request on interface {}", interface.name);
-
-    // get source ip address
-    let source_ip = interface
+// get interface ip address
+fn get_interface_ip(interface: &NetworkInterface) -> Ipv4Addr {
+    let ip = interface
         .ips
         .iter()
         .find(|ip| ip.is_ipv4())
@@ -45,6 +40,17 @@ fn send_ping() {
             _ => unreachable!(),
         })
         .unwrap();
+    return ip;
+}
+
+// send a ping packet
+fn send_ping() {
+    // get default interface
+    let interface = get_default_interface();
+    println!("Sending echo request on interface {}", interface.name);
+
+    // get source ip address
+    let source_ip = get_interface_ip(&interface);
 
     // create echo request packet
     let mut echo_buffer = [0u8; ECHO_SIZE];
