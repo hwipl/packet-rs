@@ -43,12 +43,8 @@ fn get_interface_ip(interface: &NetworkInterface) -> Ipv4Addr {
     return ip;
 }
 
-// send a ping packet
-fn send_ping() {
-    // get default interface
-    let interface = get_default_interface();
-    println!("Sending echo request on interface {}", interface.name);
-
+// create ping/echo request packet
+fn create_ping_packet(interface: &NetworkInterface) -> [u8; PACKET_SIZE] {
     // get source ip address
     let source_ip = get_interface_ip(&interface);
 
@@ -79,6 +75,15 @@ fn send_ping() {
     ethernet_packet.set_ethertype(EtherTypes::Ipv4);
     ethernet_packet.set_payload(ipv4_packet.packet_mut());
 
+    return ethernet_buffer;
+}
+
+// send a ping packet
+fn send_ping() {
+    // get default interface
+    let interface = get_default_interface();
+    println!("Sending echo request on interface {}", interface.name);
+
     // create channel
     let (mut tx, _) = match pnet::datalink::channel(&interface, Default::default()) {
         Ok(Channel::Ethernet(tx, rx)) => (tx, rx),
@@ -87,7 +92,8 @@ fn send_ping() {
     };
 
     // send packet
-    tx.send_to(ethernet_packet.packet(), None).unwrap().unwrap();
+    let ethernet_buffer = create_ping_packet(&interface);
+    tx.send_to(&ethernet_buffer, None).unwrap().unwrap();
 }
 
 fn main() {
