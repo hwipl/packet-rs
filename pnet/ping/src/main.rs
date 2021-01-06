@@ -2,6 +2,7 @@ extern crate pnet;
 
 use pnet::datalink::Channel;
 use pnet::datalink::MacAddr;
+use pnet::datalink::NetworkInterface;
 use pnet::packet::ethernet::EtherTypes;
 use pnet::packet::ethernet::MutableEthernetPacket;
 use pnet::packet::icmp::echo_request::MutableEchoRequestPacket;
@@ -18,14 +19,20 @@ const ECHO_SIZE: usize = MutableEchoRequestPacket::minimum_packet_size();
 const IPV4_SIZE: usize = MutableIpv4Packet::minimum_packet_size() + ECHO_SIZE;
 const PACKET_SIZE: usize = MutableEthernetPacket::minimum_packet_size() + IPV4_SIZE;
 
-// send a ping packet
-fn send_ping() {
-    // get default interface
+// get default interface
+fn get_default_interface() -> NetworkInterface {
     let interfaces = pnet::datalink::interfaces();
     let interface = interfaces
         .iter()
         .find(|e| e.is_up() && !e.is_loopback() && !e.ips.is_empty())
         .unwrap();
+    interface.clone()
+}
+
+// send a ping packet
+fn send_ping() {
+    // get default interface
+    let interface = get_default_interface();
     println!("Sending echo request on interface {}", interface.name);
 
     // get source ip address
