@@ -52,7 +52,7 @@ fn create_ping_packet(interface: &NetworkInterface) -> [u8; PACKET_SIZE] {
     let mut echo_buffer = [0u8; ECHO_SIZE];
     let mut echo_packet = MutableEchoRequestPacket::new(&mut echo_buffer).unwrap();
     echo_packet.set_icmp_type(IcmpTypes::EchoRequest);
-    echo_packet.set_checksum(pnet::util::checksum(echo_packet.packet(), 2));
+    echo_packet.set_checksum(pnet::util::checksum(echo_packet.packet(), 1));
 
     // create ipv4 packet
     let mut ipv4_buffer = [0u8; IPV4_SIZE];
@@ -64,7 +64,7 @@ fn create_ping_packet(interface: &NetworkInterface) -> [u8; PACKET_SIZE] {
     ipv4_packet.set_next_level_protocol(IpNextHeaderProtocols::Icmp);
     ipv4_packet.set_source(source_ip);
     ipv4_packet.set_destination(Ipv4Addr::BROADCAST);
-    ipv4_packet.set_checksum(pnet::util::checksum(ipv4_packet.packet(), 10));
+    ipv4_packet.set_checksum(pnet::util::checksum(ipv4_packet.packet(), 5));
     ipv4_packet.set_payload(echo_packet.packet_mut());
 
     // create ethernet packet
