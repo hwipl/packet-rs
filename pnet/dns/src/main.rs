@@ -1,4 +1,5 @@
 use std::convert::TryInto;
+use std::fmt;
 
 use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::Packet;
@@ -65,6 +66,21 @@ impl<'a> DnsPacket<'a> {
     }
 }
 
+impl<'a> fmt::Display for DnsPacket<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{{id: {}, flags: {}, questions: {}, answers: {}, authorities: {}, additionals: {}}}",
+            self.get_id(),
+            self.get_flags(),
+            self.get_questions(),
+            self.get_answers(),
+            self.get_authorities(),
+            self.get_additionals(),
+        )
+    }
+}
+
 // convert a 16 bit field from big endian to native byte order
 fn read_be_u16(bytes: &[u8]) -> u16 {
     u16::from_be_bytes(bytes.try_into().expect("slice with incorrect length"))
@@ -99,22 +115,7 @@ fn main() {
                         continue;
                     }
                 };
-                println!(
-                    "got dns packet from {}:
-                    id: {}
-                    flags: {}
-                    questions: {}
-                    answers: {}
-                    authorities: {}
-                    additionals: {}",
-                    addr,
-                    dns.get_id(),
-                    dns.get_flags(),
-                    dns.get_questions(),
-                    dns.get_answers(),
-                    dns.get_authorities(),
-                    dns.get_additionals(),
-                );
+                println!("got dns packet from {}: {}", addr, dns);
             }
             Err(e) => {
                 panic!("An error occurred while reading: {}", e);
