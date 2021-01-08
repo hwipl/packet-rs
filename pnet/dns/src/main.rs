@@ -48,6 +48,11 @@ impl<'a> DnsPacket<'a> {
     pub fn get_questions(&self) -> u16 {
         read_be_u16(&self.raw[4..6])
     }
+
+    // get number of answers from packet
+    pub fn get_answers(&self) -> u16 {
+        read_be_u16(&self.raw[6..8])
+    }
 }
 
 // convert a 16 bit field from big endian to native byte order
@@ -88,11 +93,13 @@ fn main() {
                     "got dns packet from {}:
                     id: {}
                     flags: {}
-                    questions: {}",
+                    questions: {}
+                    answers: {}",
                     addr,
                     dns.get_id(),
                     dns.get_flags(),
                     dns.get_questions(),
+                    dns.get_answers(),
                 );
             }
             Err(e) => {
