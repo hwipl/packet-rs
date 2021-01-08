@@ -58,6 +58,11 @@ impl<'a> DnsPacket<'a> {
     pub fn get_authorities(&self) -> u16 {
         read_be_u16(&self.raw[8..10])
     }
+
+    // get number of additional resource records from packet
+    pub fn get_additionals(&self) -> u16 {
+        read_be_u16(&self.raw[10..12])
+    }
 }
 
 // convert a 16 bit field from big endian to native byte order
@@ -100,13 +105,15 @@ fn main() {
                     flags: {}
                     questions: {}
                     answers: {}
-                    authorities: {}",
+                    authorities: {}
+                    additionals: {}",
                     addr,
                     dns.get_id(),
                     dns.get_flags(),
                     dns.get_questions(),
                     dns.get_answers(),
                     dns.get_authorities(),
+                    dns.get_additionals(),
                 );
             }
             Err(e) => {
