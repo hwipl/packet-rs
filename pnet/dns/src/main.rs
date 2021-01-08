@@ -38,6 +38,11 @@ impl<'a> DnsPacket<'a> {
     pub fn get_id(&self) -> u16 {
         read_be_u16(&self.raw[0..2])
     }
+
+    // get flags from packet
+    pub fn get_flags(&self) -> u16 {
+        read_be_u16(&self.raw[2..4])
+    }
 }
 
 // convert a 16 bit field from big endian to native byte order
@@ -74,7 +79,14 @@ fn main() {
                         continue;
                     }
                 };
-                println!("got dns packet from {} with id {}", addr, dns.get_id());
+                println!(
+                    "got dns packet from {}:
+                    id: {}
+                    flags: {}",
+                    addr,
+                    dns.get_id(),
+                    dns.get_flags(),
+                );
             }
             Err(e) => {
                 panic!("An error occurred while reading: {}", e);
