@@ -3,6 +3,8 @@ use pnet::transport::TransportChannelType::Layer4;
 use pnet::transport::TransportProtocol::Ipv4;
 use pnet::transport::{transport_channel, udp_packet_iter};
 
+const DNS_PORT: u16 = 53;
+
 fn main() {
     // create an udp channel
     let protocol = Layer4(Ipv4(IpNextHeaderProtocols::Udp));
@@ -20,7 +22,7 @@ fn main() {
         match iter.next() {
             Ok((packet, addr)) => {
                 // only handle dns packets
-                if packet.get_source() != 53 && packet.get_destination() != 53 {
+                if packet.get_source() != DNS_PORT && packet.get_destination() != DNS_PORT {
                     continue;
                 }
                 println!("got dns packet from {}", addr);
