@@ -88,6 +88,15 @@ impl<'a> DnsPacket<'a> {
     pub fn get_additionals(&self) -> u16 {
         read_be_u16(&self.raw[10..12])
     }
+
+    // get first question from packet
+    // TODO: add number parameter for retrieving specific question
+    pub fn get_question(&self) -> Option<DnsQuestion> {
+        if self.get_questions() == 0 {
+            return None;
+        }
+        DnsQuestion::new(&self.raw[DNS_HEADER_LENGTH..])
+    }
 }
 
 impl<'a> fmt::Display for DnsPacket<'a> {
