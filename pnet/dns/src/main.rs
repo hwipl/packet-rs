@@ -8,7 +8,31 @@ use pnet::transport::TransportProtocol::Ipv4;
 use pnet::transport::{transport_channel, udp_packet_iter};
 
 const DNS_HEADER_LENGTH: usize = 12;
+const DNS_MIN_QUESTION_LENGTH: usize = 5;
 const DNS_PORT: u16 = 53;
+
+// dns question conists of the following fields:
+//
+// Name (variable number of labels terminated by 0 label)
+// Type (16 bits)
+// Class (16 bits)
+//
+// use methods to read fields from question
+struct DnsQuestion<'a> {
+    raw: &'a [u8],
+}
+
+impl<'a> DnsQuestion<'a> {
+    // create a new dns question from raw packet bytes
+    pub fn new(raw: &'a [u8]) -> Option<DnsQuestion<'a>> {
+        if raw.len() < DNS_MIN_QUESTION_LENGTH {
+            println!("short dns question with length {}", raw.len());
+            None
+        } else {
+            Some(DnsQuestion { raw: raw })
+        }
+    }
+}
 
 // dns packet consists of the following 16 bit fields:
 //
