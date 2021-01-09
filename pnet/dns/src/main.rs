@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 use std::fmt;
+use std::str;
 
 use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::Packet;
@@ -31,6 +32,35 @@ impl<'a> DnsQuestion<'a> {
         } else {
             Some(DnsQuestion { raw: raw })
         }
+    }
+
+    // get the dns name from raw packet bytes
+    pub fn print_name(&self) {
+        print!("Domain name: ");
+        let mut i = 0;
+        loop {
+            if i >= self.raw.len() {
+                break;
+            }
+
+            // get length of current label from first byte
+            let length: usize = usize::from(self.raw[i]);
+
+            // have we reached end of labels?
+            if length == 0 {
+                break;
+            }
+            // TODO: check if current label is a reference to another one
+
+            // read domain name part from current label
+            let j = i + 1;
+            let part = str::from_utf8(&self.raw[j..j + length]).unwrap();
+            print!("{}.", part);
+
+            // skip to next label
+            i += length + 1;
+        }
+        println!("");
     }
 }
 
@@ -149,6 +179,14 @@ fn main() {
                     }
                 };
                 println!("got dns packet from {}: {}", addr, dns);
+
+                // handle question in dns packet
+                match dns.get_question() {
+                    None => {}
+                    Some(question) => {
+                        question.print_name();
+                    }
+                }
             }
             Err(e) => {
                 panic!("An error occurred while reading: {}", e);
