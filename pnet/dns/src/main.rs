@@ -96,6 +96,24 @@ impl<'a> DnsQuestion<'a> {
         println!("");
     }
 
+    // get the name field from raw packet bytes
+    pub fn get_name(&self) -> String {
+        let mut name = String::new();
+        for i in &self.label_indexes {
+            // get length of current label from first byte
+            let length: usize = usize::from(self.raw[*i]);
+
+            // TODO: check if current label is a reference to another one
+
+            // read domain name part from current label
+            let j = i + 1;
+            let part = str::from_utf8(&self.raw[j..j + length]).unwrap();
+            name.push_str(part);
+            name += ".";
+        }
+        return name;
+    }
+
     // get the type field from raw packet bytes
     pub fn get_type(&self) -> u16 {
         let i = self.type_index;
@@ -230,6 +248,7 @@ fn main() {
                     None => {}
                     Some(question) => {
                         question.print_name();
+                        println!("Name: {}", question.get_name());
                         println!("Type: {}", question.get_type());
                         println!("Class: {}", question.get_class());
                     }
