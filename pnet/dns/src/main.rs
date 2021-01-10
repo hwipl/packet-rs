@@ -24,6 +24,10 @@ struct DnsQuestion<'a> {
 
     // indexes of labels within the packet
     label_indexes: Vec<usize>,
+
+    // indexes of type and class fields that are after the labels
+    type_index: usize,
+    class_index: usize,
 }
 
 impl<'a> DnsQuestion<'a> {
@@ -36,6 +40,8 @@ impl<'a> DnsQuestion<'a> {
             let mut question = DnsQuestion {
                 raw: raw,
                 label_indexes: Vec::new(),
+                type_index: 0,
+                class_index: 0,
             };
             question.parse();
             Some(question)
@@ -44,6 +50,8 @@ impl<'a> DnsQuestion<'a> {
 
     // parse the question packet:
     // find labels in the raw packet bytes,
+    // find index of type field,
+    // find index of class field.
     // TODO: add error handling
     fn parse(&mut self) {
         let mut i = 0;
@@ -56,6 +64,9 @@ impl<'a> DnsQuestion<'a> {
 
             // have we reached end of labels?
             if length == 0 {
+                // save index of type field
+                self.type_index = i + 1;
+                self.class_index = i + 3;
                 break;
             }
             // TODO: check if current label is a reference to another one
