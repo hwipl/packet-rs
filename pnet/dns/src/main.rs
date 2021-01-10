@@ -21,6 +21,9 @@ const DNS_PORT: u16 = 53;
 // use methods to read fields from question
 struct DnsQuestion<'a> {
     raw: &'a [u8],
+
+    // indexes of labels within the packet
+    label_indexes: Vec<usize>,
 }
 
 impl<'a> DnsQuestion<'a> {
@@ -30,7 +33,38 @@ impl<'a> DnsQuestion<'a> {
             println!("short dns question with length {}", raw.len());
             None
         } else {
-            Some(DnsQuestion { raw: raw })
+            let mut question = DnsQuestion {
+                raw: raw,
+                label_indexes: Vec::new(),
+            };
+            question.parse();
+            Some(question)
+        }
+    }
+
+    // parse the question packet:
+    // find labels in the raw packet bytes,
+    // TODO: add error handling
+    fn parse(&mut self) {
+        let mut i = 0;
+        loop {
+            if i >= self.raw.len() {
+                break;
+            }
+            // get length of current label from first byte
+            let length: usize = usize::from(self.raw[i]);
+
+            // have we reached end of labels?
+            if length == 0 {
+                break;
+            }
+            // TODO: check if current label is a reference to another one
+
+            // save current label index
+            self.label_indexes.push(i);
+
+            // skip to next label
+            i += length + 1;
         }
     }
 
