@@ -101,6 +101,12 @@ impl<'a> DnsQuestion<'a> {
         let i = self.type_index;
         read_be_u16(&self.raw[i..i + 2])
     }
+
+    // get the class field from raw packet bytes
+    pub fn get_class(&self) -> u16 {
+        let i = self.class_index;
+        read_be_u16(&self.raw[i..i + 2])
+    }
 }
 
 // dns packet consists of the following 16 bit fields:
@@ -225,6 +231,7 @@ fn main() {
                     Some(question) => {
                         question.print_name();
                         println!("Type: {}", question.get_type());
+                        println!("Class: {}", question.get_class());
                     }
                 }
             }
