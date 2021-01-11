@@ -208,13 +208,12 @@ impl<'a> DnsPacket<'a> {
         read_be_u16(&self.raw[10..12])
     }
 
-    // get first question from packet
-    // TODO: add number parameter for retrieving specific question
-    pub fn get_question(&self) -> Option<DnsQuestion> {
-        if self.get_questions() == 0 {
+    // get nth question from packet
+    pub fn get_question(&self, nth: usize) -> Option<&DnsQuestion> {
+        if nth >= self.questions.len() {
             return None;
         }
-        DnsQuestion::new(&self.raw[DNS_HEADER_LENGTH..])
+        Some(&self.questions[nth])
     }
 }
 
@@ -270,7 +269,7 @@ fn main() {
                 println!("got dns packet from {}: {}", addr, dns);
 
                 // handle question in dns packet
-                match dns.get_question() {
+                match dns.get_question(0) {
                     None => {}
                     Some(question) => {
                         question.print_name();
