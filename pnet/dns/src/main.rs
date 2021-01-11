@@ -132,6 +132,9 @@ impl<'a> DnsQuestion<'a> {
 // use methods to read fields from the packet
 struct DnsPacket<'a> {
     raw: &'a [u8],
+
+    // dns questions inside the packet
+    questions: Vec<DnsQuestion<'a>>,
 }
 
 impl<'a> DnsPacket<'a> {
@@ -141,7 +144,37 @@ impl<'a> DnsPacket<'a> {
             println!("short dns packet with length {}", raw.len());
             None
         } else {
-            Some(DnsPacket { raw: raw })
+            let mut packet = DnsPacket {
+                raw: raw,
+                questions: Vec::new(),
+            };
+            packet.parse_questions();
+            Some(packet)
+        }
+    }
+
+    // parse dns packet and find questions
+    // TODO: add error handling
+    fn parse_questions(&mut self) {
+        if self.get_questions() == 0 {
+            return;
+        }
+
+        let mut offset = DNS_HEADER_LENGTH;
+        for _ in 0..self.get_questions() {
+            if offset >= self.raw.len() {
+                println!("invalid number of questions and/or packet too short");
+                return;
+            }
+
+            let q = DnsQuestion::new(&self.raw[offset..]);
+            match q {
+                None => return,
+                Some(q) => {
+                    offset += q.get_length();
+                    self.questions.push(q);
+                }
+            }
         }
     }
 
