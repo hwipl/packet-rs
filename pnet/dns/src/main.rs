@@ -113,6 +113,11 @@ impl<'a> DnsQuestion<'a> {
         let i = self.class_index;
         read_be_u16(&self.raw[i..i + 2])
     }
+
+    // get the length of the question
+    pub fn get_length(&self) -> usize {
+        self.class_index + 2
+    }
 }
 
 // dns packet consists of the following 16 bit fields:
