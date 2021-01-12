@@ -510,15 +510,18 @@ fn main() {
                     }
                 }
 
-                // handle answer in dns packet
-                match dns.get_answer(0) {
-                    None => {}
-                    Some(answer) => {
-                        println!("Name: {}", answer.get_name());
-                        println!("Type: {}", answer.get_type());
-                        println!("Class: {}", answer.get_class());
-                        println!("TTL: {}", answer.get_ttl());
-                        println!("Data Length: {}", answer.get_data_length());
+                // handle answers in dns packet
+                for i in 0..dns.get_answers().into() {
+                    match dns.get_answer(i) {
+                        None => {}
+                        Some(answer) => {
+                            println!("Answer {}:", i);
+                            println!("  Name: {}", answer.get_name());
+                            println!("  Type: {}", answer.get_type());
+                            println!("  Class: {}", answer.get_class());
+                            println!("  TTL: {}", answer.get_ttl());
+                            println!("  Data Length: {}", answer.get_data_length());
+                        }
                     }
                 }
             }
