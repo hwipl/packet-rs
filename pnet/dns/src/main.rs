@@ -255,6 +255,11 @@ impl<'a> DnsAnswer<'a> {
         let i = self.data_length_index;
         read_be_u16(&self.raw[i..i + 2])
     }
+
+    // get the length of the answer
+    pub fn get_length(&self) -> usize {
+        self.class_index + usize::from(self.get_data_length())
+    }
 }
 
 // dns packet consists of the following 16 bit fields:
