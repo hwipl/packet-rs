@@ -402,13 +402,12 @@ impl<'a> DnsPacket<'a> {
         Some(&self.questions[nth])
     }
 
-    // get first answer from packet
-    // TODO: add number parameter for retrieving specific answer
-    pub fn get_answer(&self) -> Option<DnsAnswer> {
-        if self.get_answers() == 0 {
+    // get nth answer from packet
+    pub fn get_answer(&self, nth: usize) -> Option<&DnsAnswer> {
+        if nth >= self.answers.len() {
             return None;
         }
-        DnsAnswer::new(&self.raw[self.answers_offset..])
+        Some(&self.answers[nth])
     }
 }
 
@@ -480,7 +479,7 @@ fn main() {
                 }
 
                 // handle answer in dns packet
-                match dns.get_answer() {
+                match dns.get_answer(0) {
                     None => {}
                     Some(answer) => {
                         println!("Name: {}", answer.get_name());
