@@ -208,6 +208,29 @@ impl<'a> DnsAnswer<'a> {
             i += length + 1;
         }
     }
+
+    // get the name field from raw packet bytes
+    pub fn get_name(&self) -> String {
+        let mut name = String::new();
+        for i in &self.label_indexes {
+            // get length of current label from first byte
+            let length: usize = usize::from(self.raw[*i]);
+
+            // check if current label is a reference to another one
+            // TODO: improve reference handling
+            if length & 0b11000000 != 0 {
+                name += "*";
+                continue;
+            }
+
+            // read domain name part from current label
+            let j = i + 1;
+            let part = str::from_utf8(&self.raw[j..j + length]).unwrap();
+            name.push_str(part);
+            name += ".";
+        }
+        return name;
+    }
 }
 
 // dns packet consists of the following 16 bit fields:
@@ -390,7 +413,9 @@ fn main() {
                 // handle answer in dns packet
                 match dns.get_answer() {
                     None => {}
-                    Some(_answer) => {}
+                    Some(answer) => {
+                        println!("Name: {}", answer.get_name());
+                    }
                 }
             }
             Err(e) => {
