@@ -282,6 +282,9 @@ struct DnsPacket<'a> {
     // dns answers inside the packet
     answers_offset: usize,
     answers: Vec<DnsAnswer<'a>>,
+
+    // dns authority resource records inside the packet
+    authorities_offset: usize,
 }
 
 impl<'a> DnsPacket<'a> {
@@ -297,6 +300,7 @@ impl<'a> DnsPacket<'a> {
                 questions: Vec::new(),
                 answers_offset: 0,
                 answers: Vec::new(),
+                authorities_offset: 0,
             };
             packet.parse_questions();
             packet.parse_answers();
@@ -332,7 +336,7 @@ impl<'a> DnsPacket<'a> {
         self.answers_offset = offset;
     }
 
-    // parse dns packet and find answers
+    // parse dns packet and find answers, set authorities offset
     // TODO: add error handling
     fn parse_answers(&mut self) {
         if self.get_answers() == 0 {
@@ -355,6 +359,9 @@ impl<'a> DnsPacket<'a> {
                 }
             }
         }
+
+        // set offset to answers section
+        self.authorities_offset = offset;
     }
 
     // get identification field from packet
