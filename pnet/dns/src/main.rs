@@ -335,6 +335,7 @@ impl<'a> DnsPacket<'a> {
     // TODO: add error handling
     fn parse_questions(&mut self) {
         if self.get_questions() == 0 {
+            self.answers_offset = self.questions_offset;
             return;
         }
 
