@@ -249,6 +249,12 @@ impl<'a> DnsAnswer<'a> {
         let i = self.ttl_index;
         read_be_u32(&self.raw[i..i + 4])
     }
+
+    // get the data length field from raw packet bytes
+    pub fn get_data_length(&self) -> u16 {
+        let i = self.data_length_index;
+        read_be_u16(&self.raw[i..i + 2])
+    }
 }
 
 // dns packet consists of the following 16 bit fields:
@@ -441,6 +447,7 @@ fn main() {
                         println!("Type: {}", answer.get_type());
                         println!("Class: {}", answer.get_class());
                         println!("TTL: {}", answer.get_ttl());
+                        println!("Data Length: {}", answer.get_data_length());
                     }
                 }
             }
