@@ -180,15 +180,23 @@ impl<'a> DnsAnswer<'a> {
     // TODO: add error handling
     fn parse(&mut self) {
         let mut i = self.offset;
+        let mut is_reference = false;
         loop {
             if i >= self.raw.len() {
                 break;
             }
             // get length of current label from first byte
-            let mut length: usize = usize::from(self.raw[i]);
+            let length: usize = usize::from(self.raw[i]);
 
             // have we reached end of labels?
             if length == 0 {
+                // if we reached this end of labels while following a
+                // label reference, do not update indexes, they have
+                // been updated before following the reference
+                if is_reference {
+                    break;
+                }
+
                 // save index of type field
                 self.type_index = i + 1;
                 self.class_index = i + 3;
@@ -198,10 +206,22 @@ impl<'a> DnsAnswer<'a> {
                 break;
             }
 
-            // is current label a reference to another one?
-            // TODO: improve reference handling
+            // is current label a reference to a previous one?
+            // This is also handled as the end of the current labels
             if length & 0b11000000 != 0 {
-                length = 1;
+                // save index of type field
+                self.type_index = i + 2;
+                self.class_index = i + 4;
+                self.ttl_index = i + 6;
+                self.data_length_index = i + 10;
+                self.data_index = i + 12;
+
+                // follow reference to previous label
+                // TODO: add error handling
+                is_reference = true;
+                let raw_index = [self.raw[i] & 0b00111111, self.raw[i + 1]];
+                i = usize::from(read_be_u16(&raw_index));
+                continue;
             }
 
             // save current label index
