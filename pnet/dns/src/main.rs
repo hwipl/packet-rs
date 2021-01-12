@@ -182,7 +182,7 @@ impl<'a> DnsAnswer<'a> {
                 break;
             }
             // get length of current label from first byte
-            let length: usize = usize::from(self.raw[i]);
+            let mut length: usize = usize::from(self.raw[i]);
 
             // have we reached end of labels?
             if length == 0 {
@@ -194,7 +194,12 @@ impl<'a> DnsAnswer<'a> {
                 self.data_index = i + 11;
                 break;
             }
-            // TODO: check if current label is a reference to another one
+
+            // is current label a reference to another one?
+            // TODO: improve reference handling
+            if length & 0b11000000 != 0 {
+                length = 1;
+            }
 
             // save current label index
             self.label_indexes.push(i);
