@@ -136,6 +136,14 @@ struct DnsAnswer<'a> {
 
     // indexes of labels within the packet
     label_indexes: Vec<usize>,
+
+    // indexes of type, class, ttl, data length, data fields
+    // that are after the labels
+    type_index: usize,
+    class_index: usize,
+    ttl_index: usize,
+    data_length_index: usize,
+    data_index: usize,
 }
 
 impl<'a> DnsAnswer<'a> {
@@ -148,6 +156,11 @@ impl<'a> DnsAnswer<'a> {
             let mut answer = DnsAnswer {
                 raw: raw,
                 label_indexes: Vec::new(),
+                type_index: 0,
+                class_index: 0,
+                ttl_index: 0,
+                data_length_index: 0,
+                data_index: 0,
             };
             answer.parse();
             Some(answer)
@@ -156,6 +169,11 @@ impl<'a> DnsAnswer<'a> {
 
     // parse the answer packet:
     // find labels in the raw packet bytes,
+    // find index of type field,
+    // find index of class field,
+    // find index of ttl field,
+    // find index of data length field,
+    // find index of data field.
     // TODO: add error handling
     fn parse(&mut self) {
         let mut i = 0;
@@ -168,6 +186,12 @@ impl<'a> DnsAnswer<'a> {
 
             // have we reached end of labels?
             if length == 0 {
+                // save index of type field
+                self.type_index = i + 1;
+                self.class_index = i + 3;
+                self.ttl_index = i + 5;
+                self.data_length_index = i + 9;
+                self.data_index = i + 11;
                 break;
             }
             // TODO: check if current label is a reference to another one
