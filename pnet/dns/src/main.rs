@@ -327,7 +327,7 @@ fn main() {
                 // handle answer in dns packet
                 match dns.get_answer() {
                     None => {}
-                    Some(answer) => {}
+                    Some(_answer) => {}
                 }
             }
             Err(e) => {
