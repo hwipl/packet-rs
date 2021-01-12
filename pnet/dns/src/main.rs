@@ -231,6 +231,12 @@ impl<'a> DnsAnswer<'a> {
         }
         return name;
     }
+
+    // get the type field from raw packet bytes
+    pub fn get_type(&self) -> u16 {
+        let i = self.type_index;
+        read_be_u16(&self.raw[i..i + 2])
+    }
 }
 
 // dns packet consists of the following 16 bit fields:
@@ -415,6 +421,7 @@ fn main() {
                     None => {}
                     Some(answer) => {
                         println!("Name: {}", answer.get_name());
+                        println!("Type: {}", answer.get_type());
                     }
                 }
             }
