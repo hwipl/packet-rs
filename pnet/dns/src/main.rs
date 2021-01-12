@@ -496,14 +496,17 @@ fn main() {
                 };
                 println!("got dns packet from {}: {}", addr, dns);
 
-                // handle question in dns packet
-                match dns.get_question(0) {
-                    None => {}
-                    Some(question) => {
-                        question.print_name();
-                        println!("Name: {}", question.get_name());
-                        println!("Type: {}", question.get_type());
-                        println!("Class: {}", question.get_class());
+                // handle questions in dns packet
+                for i in 0..dns.get_questions().into() {
+                    match dns.get_question(0) {
+                        None => {}
+                        Some(question) => {
+                            question.print_name();
+                            println!("Question {}:", i);
+                            println!("  Name: {}", question.get_name());
+                            println!("  Type: {}", question.get_type());
+                            println!("  Class: {}", question.get_class());
+                        }
                     }
                 }
 
