@@ -80,11 +80,6 @@ impl<'a> DnsQuestion<'a> {
         }
     }
 
-    // get the dns name from raw packet bytes
-    pub fn print_name(&self) {
-        println!("Domain name: {}", self.get_name());
-    }
-
     // get the name field from raw packet bytes
     pub fn get_name(&self) -> String {
         let mut name = String::new();
@@ -501,7 +496,6 @@ fn main() {
                     match dns.get_question(0) {
                         None => {}
                         Some(question) => {
-                            question.print_name();
                             println!("Question {}:", i);
                             println!("  Name: {}", question.get_name());
                             println!("  Type: {}", question.get_type());
