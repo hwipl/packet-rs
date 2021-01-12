@@ -133,6 +133,9 @@ impl<'a> DnsQuestion<'a> {
 // use methods to read fields from question
 struct DnsAnswer<'a> {
     raw: &'a [u8],
+
+    // indexes of labels within the packet
+    label_indexes: Vec<usize>,
 }
 
 impl<'a> DnsAnswer<'a> {
@@ -142,7 +145,38 @@ impl<'a> DnsAnswer<'a> {
             println!("short dns answer with length {}", raw.len());
             None
         } else {
-            Some(DnsAnswer { raw: raw })
+            let mut answer = DnsAnswer {
+                raw: raw,
+                label_indexes: Vec::new(),
+            };
+            answer.parse();
+            Some(answer)
+        }
+    }
+
+    // parse the answer packet:
+    // find labels in the raw packet bytes,
+    // TODO: add error handling
+    fn parse(&mut self) {
+        let mut i = 0;
+        loop {
+            if i >= self.raw.len() {
+                break;
+            }
+            // get length of current label from first byte
+            let length: usize = usize::from(self.raw[i]);
+
+            // have we reached end of labels?
+            if length == 0 {
+                break;
+            }
+            // TODO: check if current label is a reference to another one
+
+            // save current label index
+            self.label_indexes.push(i);
+
+            // skip to next label
+            i += length + 1;
         }
     }
 }
