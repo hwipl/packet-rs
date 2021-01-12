@@ -197,7 +197,7 @@ impl<'a> DnsAnswer<'a> {
                     break;
                 }
 
-                // save index of type field
+                // save indexes of type, class, ttl, data length, data fields
                 self.type_index = i + 1;
                 self.class_index = i + 3;
                 self.ttl_index = i + 5;
@@ -207,14 +207,18 @@ impl<'a> DnsAnswer<'a> {
             }
 
             // is current label a reference to a previous one?
-            // This is also handled as the end of the current labels
             if length & 0b11000000 != 0 {
-                // save index of type field
-                self.type_index = i + 2;
-                self.class_index = i + 4;
-                self.ttl_index = i + 6;
-                self.data_length_index = i + 10;
-                self.data_index = i + 12;
+                if !is_reference {
+                    // this is the first reference in this answer, so this
+                    // marks the end of this answer's labels;
+                    // save indexes of type, class, ttl, data length,
+                    // data fields
+                    self.type_index = i + 2;
+                    self.class_index = i + 4;
+                    self.ttl_index = i + 6;
+                    self.data_length_index = i + 10;
+                    self.data_index = i + 12;
+                }
 
                 // follow reference to previous label
                 // TODO: add error handling
