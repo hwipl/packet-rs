@@ -9,6 +9,7 @@ use pnet::transport::TransportProtocol::Ipv4;
 use pnet::transport::{transport_channel, udp_packet_iter};
 
 const DNS_HEADER_LENGTH: usize = 12;
+const DNS_MIN_ANSWER_LENGTH: usize = 11;
 const DNS_MIN_QUESTION_LENGTH: usize = 5;
 const DNS_PORT: u16 = 53;
 
@@ -120,6 +121,32 @@ impl<'a> DnsQuestion<'a> {
     }
 }
 
+// dns answer consists of the following fields:
+//
+// Name (variable number of labels terminated by 0 label)
+// Type (16 bits)
+// Class (16 bits)
+// TTL (32 bits)
+// Data Length (16 bits)
+// Data (Data Length bytes)
+//
+// use methods to read fields from question
+struct DnsAnswer<'a> {
+    raw: &'a [u8],
+}
+
+impl<'a> DnsAnswer<'a> {
+    // create a new dns question from raw packet bytes
+    pub fn new(raw: &'a [u8]) -> Option<DnsAnswer<'a>> {
+        if raw.len() < DNS_MIN_ANSWER_LENGTH {
+            println!("short dns answer with length {}", raw.len());
+            None
+        } else {
+            Some(DnsAnswer { raw: raw })
+        }
+    }
+}
+
 // dns packet consists of the following 16 bit fields:
 //
 // Identification,
@@ -224,6 +251,15 @@ impl<'a> DnsPacket<'a> {
         }
         Some(&self.questions[nth])
     }
+
+    // get first answer from packet
+    // TODO: add number parameter for retrieving specific answer
+    pub fn get_answer(&self) -> Option<DnsAnswer> {
+        if self.get_answers() == 0 {
+            return None;
+        }
+        DnsAnswer::new(&self.raw[self.answers_offset..])
+    }
 }
 
 impl<'a> fmt::Display for DnsPacket<'a> {
@@ -286,6 +322,12 @@ fn main() {
                         println!("Type: {}", question.get_type());
                         println!("Class: {}", question.get_class());
                     }
+                }
+
+                // handle answer in dns packet
+                match dns.get_answer() {
+                    None => {}
+                    Some(answer) => {}
                 }
             }
             Err(e) => {
