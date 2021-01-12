@@ -134,6 +134,7 @@ struct DnsPacket<'a> {
     raw: &'a [u8],
 
     // dns questions inside the packet
+    questions_offset: usize,
     questions: Vec<DnsQuestion<'a>>,
 }
 
@@ -146,6 +147,7 @@ impl<'a> DnsPacket<'a> {
         } else {
             let mut packet = DnsPacket {
                 raw: raw,
+                questions_offset: DNS_HEADER_LENGTH,
                 questions: Vec::new(),
             };
             packet.parse_questions();
@@ -160,7 +162,7 @@ impl<'a> DnsPacket<'a> {
             return;
         }
 
-        let mut offset = DNS_HEADER_LENGTH;
+        let mut offset = self.questions_offset;
         for _ in 0..self.get_questions() {
             if offset >= self.raw.len() {
                 println!("invalid number of questions and/or packet too short");
