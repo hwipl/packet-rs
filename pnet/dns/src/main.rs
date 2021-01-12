@@ -261,7 +261,7 @@ impl<'a> DnsAnswer<'a> {
 
     // get the length of the answer
     pub fn get_length(&self) -> usize {
-        self.class_index + usize::from(self.get_data_length())
+        self.data_index + usize::from(self.get_data_length()) - self.offset
     }
 }
 
