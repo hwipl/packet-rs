@@ -384,7 +384,7 @@ impl<'a> DnsPacket<'a> {
             }
         }
 
-        // set offset to answers section
+        // set offset to authorities section
         self.authorities_offset = offset;
     }
 
