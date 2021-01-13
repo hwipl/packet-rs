@@ -353,6 +353,7 @@ impl<'a> DnsPacket<'a> {
         for _ in 0..self.get_questions() {
             if offset >= self.raw.len() {
                 println!("invalid number of questions and/or packet too short");
+                println!("offset: {}, raw.len(): {}", offset, self.raw.len());
                 return;
             }
 
@@ -382,6 +383,7 @@ impl<'a> DnsPacket<'a> {
         for _ in 0..self.get_answers() {
             if offset >= self.raw.len() {
                 println!("invalid number of answers and/or packet too short");
+                println!("offset: {}, raw.len(): {}", offset, self.raw.len());
                 return;
             }
 
