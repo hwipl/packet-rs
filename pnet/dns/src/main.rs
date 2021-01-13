@@ -284,6 +284,10 @@ impl<'a> DnsAnswer<'a> {
     }
 }
 
+// dns authority resource record consists of the same fields as dns answer,
+// so reuse DnsAnswer for this
+type DnsAuthority<'a> = DnsAnswer<'a>;
+
 // dns packet consists of the following 16 bit fields:
 //
 // Identification,
@@ -307,6 +311,7 @@ struct DnsPacket<'a> {
 
     // dns authority resource records inside the packet
     authorities_offset: usize,
+    authorities: Vec<DnsAuthority<'a>>,
 }
 
 impl<'a> DnsPacket<'a> {
@@ -323,9 +328,11 @@ impl<'a> DnsPacket<'a> {
                 answers_offset: 0,
                 answers: Vec::new(),
                 authorities_offset: 0,
+                authorities: Vec::new(),
             };
             packet.parse_questions();
             packet.parse_answers();
+            packet.parse_authorities();
             Some(packet)
         }
     }
@@ -388,6 +395,32 @@ impl<'a> DnsPacket<'a> {
         self.authorities_offset = offset;
     }
 
+    // parse dns packet and find authorities
+    // TODO: add error handling
+    fn parse_authorities(&mut self) {
+        if self.get_authorities() == 0 {
+            return;
+        }
+
+        let mut offset = self.authorities_offset;
+        for _ in 0..self.get_authorities() {
+            if offset >= self.raw.len() {
+                println!("invalid number of authorities and/or packet too short");
+                println!("offset: {}, raw.len(): {}", offset, self.raw.len());
+                return;
+            }
+
+            let a = DnsAuthority::new(self.raw, offset);
+            match a {
+                None => return,
+                Some(a) => {
+                    offset += a.get_length();
+                    self.authorities.push(a);
+                }
+            }
+        }
+    }
+
     // get identification field from packet
     pub fn get_id(&self) -> u16 {
         read_be_u16(&self.raw[0..2])
@@ -432,6 +465,14 @@ impl<'a> DnsPacket<'a> {
             return None;
         }
         Some(&self.answers[nth])
+    }
+
+    // get nth authority from packet
+    pub fn get_authority(&self, nth: usize) -> Option<&DnsAuthority> {
+        if nth >= self.authorities.len() {
+            return None;
+        }
+        Some(&self.authorities[nth])
     }
 }
 
@@ -515,6 +556,21 @@ fn main() {
                             println!("  Class: {}", answer.get_class());
                             println!("  TTL: {}", answer.get_ttl());
                             println!("  Data Length: {}", answer.get_data_length());
+                        }
+                    }
+                }
+
+                // handle authorities in dns packet
+                for i in 0..dns.get_authorities().into() {
+                    match dns.get_authority(i) {
+                        None => {}
+                        Some(authority) => {
+                            println!("Authority {}:", i);
+                            println!("  Name: {}", authority.get_name());
+                            println!("  Type: {}", authority.get_type());
+                            println!("  Class: {}", authority.get_class());
+                            println!("  TTL: {}", authority.get_ttl());
+                            println!("  Data Length: {}", authority.get_data_length());
                         }
                     }
                 }
