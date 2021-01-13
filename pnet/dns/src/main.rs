@@ -287,6 +287,10 @@ impl<'a> DnsAnswer<'a> {
 // so reuse DnsAnswer for this
 type DnsAuthority<'a> = DnsAnswer<'a>;
 
+// dns additional resource record consists of the same fields as dns answer,
+// so reuse DnsAnswer for this
+type DnsAdditional<'a> = DnsAnswer<'a>;
+
 // dns packet consists of the following 16 bit fields:
 //
 // Identification,
@@ -314,6 +318,7 @@ struct DnsPacket<'a> {
 
     // dns additional resource records inside the packet
     additionals_offset: usize,
+    additionals: Vec<DnsAdditional<'a>>,
 }
 
 impl<'a> DnsPacket<'a> {
@@ -332,10 +337,12 @@ impl<'a> DnsPacket<'a> {
                 authorities_offset: 0,
                 authorities: Vec::new(),
                 additionals_offset: 0,
+                additionals: Vec::new(),
             };
             packet.parse_questions();
             packet.parse_answers();
             packet.parse_authorities();
+            packet.parse_additionals();
             Some(packet)
         }
     }
@@ -430,6 +437,32 @@ impl<'a> DnsPacket<'a> {
         self.additionals_offset = offset;
     }
 
+    // parse dns packet and find additionals
+    // TODO: add error handling
+    fn parse_additionals(&mut self) {
+        if self.get_additionals() == 0 {
+            return;
+        }
+
+        let mut offset = self.additionals_offset;
+        for _ in 0..self.get_additionals() {
+            if offset >= self.raw.len() {
+                println!("invalid number of authorities and/or packet too short");
+                println!("offset: {}, raw.len(): {}", offset, self.raw.len());
+                return;
+            }
+
+            let a = DnsAdditional::new(self.raw, offset);
+            match a {
+                None => return,
+                Some(a) => {
+                    offset += a.get_length();
+                    self.additionals.push(a);
+                }
+            }
+        }
+    }
+
     // get identification field from packet
     pub fn get_id(&self) -> u16 {
         read_be_u16(&self.raw[0..2])
@@ -482,6 +515,14 @@ impl<'a> DnsPacket<'a> {
             return None;
         }
         Some(&self.authorities[nth])
+    }
+
+    // get nth additional from packet
+    pub fn get_additional(&self, nth: usize) -> Option<&DnsAdditional> {
+        if nth >= self.additionals.len() {
+            return None;
+        }
+        Some(&self.additionals[nth])
     }
 }
 
@@ -580,6 +621,21 @@ fn main() {
                             println!("  Class: {}", authority.get_class());
                             println!("  TTL: {}", authority.get_ttl());
                             println!("  Data Length: {}", authority.get_data_length());
+                        }
+                    }
+                }
+
+                // handle additionals in dns packet
+                for i in 0..dns.get_additionals().into() {
+                    match dns.get_additional(i) {
+                        None => {}
+                        Some(additional) => {
+                            println!("Additional {}:", i);
+                            println!("  Name: {}", additional.get_name());
+                            println!("  Type: {}", additional.get_type());
+                            println!("  Class: {}", additional.get_class());
+                            println!("  TTL: {}", additional.get_ttl());
+                            println!("  Data Length: {}", additional.get_data_length());
                         }
                     }
                 }
