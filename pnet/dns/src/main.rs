@@ -240,7 +240,13 @@ impl<'a> DnsAnswer<'a> {
 
             // read domain name part from current label
             let j = i + 1;
-            let part = str::from_utf8(&self.raw[j..j + length]).unwrap();
+            let part = match str::from_utf8(&self.raw[j..j + length]) {
+                Ok(part) => part,
+                Err(err) => {
+                    println!("{}", err);
+                    "<error>"
+                }
+            };
             name.push_str(part);
             name += ".";
         }
