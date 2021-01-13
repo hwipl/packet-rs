@@ -238,13 +238,6 @@ impl<'a> DnsAnswer<'a> {
             // get length of current label from first byte
             let length: usize = usize::from(self.raw[*i]);
 
-            // check if current label is a reference to another one
-            // TODO: improve reference handling
-            if length & 0b11000000 != 0 {
-                name += "*";
-                continue;
-            }
-
             // read domain name part from current label
             let j = i + 1;
             let part = str::from_utf8(&self.raw[j..j + length]).unwrap();
