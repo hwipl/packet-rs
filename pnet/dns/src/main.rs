@@ -340,7 +340,7 @@ impl<'a> DnsPacket<'a> {
                 additionals: Vec::new(),
             };
             packet.parse_questions().ok()?;
-            packet.parse_answers();
+            packet.parse_answers().ok()?;
             packet.parse_authorities();
             packet.parse_additionals();
             Some(packet)
@@ -379,11 +379,11 @@ impl<'a> DnsPacket<'a> {
     }
 
     // parse dns packet and find answers, set authorities offset
-    // TODO: add error handling
-    fn parse_answers(&mut self) {
+    // TODO: improve error handling
+    fn parse_answers(&mut self) -> Result<(), ()> {
         if self.get_answers() == 0 {
             self.authorities_offset = self.answers_offset;
-            return;
+            return Ok(());
         }
 
         let mut offset = self.answers_offset;
@@ -391,12 +391,12 @@ impl<'a> DnsPacket<'a> {
             if offset >= self.raw.len() {
                 println!("invalid number of answers and/or packet too short");
                 println!("offset: {}, raw.len(): {}", offset, self.raw.len());
-                return;
+                return Err(());
             }
 
             let a = DnsAnswer::new(self.raw, offset);
             match a {
-                None => return,
+                None => return Err(()),
                 Some(a) => {
                     offset += a.get_length();
                     self.answers.push(a);
@@ -406,6 +406,7 @@ impl<'a> DnsPacket<'a> {
 
         // set offset to authorities section
         self.authorities_offset = offset;
+        return Ok(());
     }
 
     // parse dns packet and find authorities, set additionals offset
