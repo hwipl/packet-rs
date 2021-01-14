@@ -342,7 +342,7 @@ impl<'a> DnsPacket<'a> {
             packet.parse_questions().ok()?;
             packet.parse_answers().ok()?;
             packet.parse_authorities().ok()?;
-            packet.parse_additionals();
+            packet.parse_additionals().ok()?;
             Some(packet)
         }
     }
@@ -441,10 +441,10 @@ impl<'a> DnsPacket<'a> {
     }
 
     // parse dns packet and find additionals
-    // TODO: add error handling
-    fn parse_additionals(&mut self) {
+    // TODO: improve error handling
+    fn parse_additionals(&mut self) -> Result<(), ()> {
         if self.get_additionals() == 0 {
-            return;
+            return Ok(());
         }
 
         let mut offset = self.additionals_offset;
@@ -452,18 +452,19 @@ impl<'a> DnsPacket<'a> {
             if offset >= self.raw.len() {
                 println!("invalid number of authorities and/or packet too short");
                 println!("offset: {}, raw.len(): {}", offset, self.raw.len());
-                return;
+                return Err(());
             }
 
             let a = DnsAdditional::new(self.raw, offset);
             match a {
-                None => return,
+                None => return Err(()),
                 Some(a) => {
                     offset += a.get_length();
                     self.additionals.push(a);
                 }
             }
         }
+        return Ok(());
     }
 
     // get identification field from packet
