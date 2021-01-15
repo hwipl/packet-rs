@@ -58,29 +58,15 @@ impl<'a> DnsQuestion<'a> {
     // find index of class field.
     // TODO: add error handling
     fn parse(&mut self) {
-        let mut i = self.offset;
-        loop {
-            if i >= self.raw.len() {
-                break;
-            }
-            // get length of current label from first byte
-            let length: usize = usize::from(self.raw[i]);
+        // parse labels
+        let (next_index, label_indexes) = parse_labels(self.raw, self.offset);
 
-            // have we reached end of labels?
-            if length == 0 {
-                // save index of type field
-                self.type_index = i + 1;
-                self.class_index = i + 3;
-                break;
-            }
-            // TODO: check if current label is a reference to another one
+        // set label indexes
+        self.label_indexes = label_indexes;
 
-            // save current label index
-            self.label_indexes.push(i);
-
-            // skip to next label
-            i += length + 1;
-        }
+        // set indexes of other message fields
+        self.type_index = next_index;
+        self.class_index = self.type_index + 2;
     }
 
     // get the name field from raw packet bytes
