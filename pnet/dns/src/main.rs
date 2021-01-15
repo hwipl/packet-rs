@@ -21,7 +21,9 @@ const DNS_PORT: u16 = 53;
 //
 // use methods to read fields from question
 struct DnsQuestion<'a> {
+    // raw packet data and offset to dns question inside the packet data
     raw: &'a [u8],
+    offset: usize,
 
     // indexes of labels within the packet
     label_indexes: Vec<usize>,
@@ -33,13 +35,14 @@ struct DnsQuestion<'a> {
 
 impl<'a> DnsQuestion<'a> {
     // create a new dns question from raw packet bytes
-    pub fn new(raw: &'a [u8]) -> Option<DnsQuestion<'a>> {
+    pub fn new(raw: &'a [u8], offset: usize) -> Option<DnsQuestion<'a>> {
         if raw.len() < DNS_MIN_QUESTION_LENGTH {
             println!("short dns question with length {}", raw.len());
             None
         } else {
             let mut question = DnsQuestion {
                 raw: raw,
+                offset: offset,
                 label_indexes: Vec::new(),
                 type_index: 0,
                 class_index: 0,
@@ -55,7 +58,7 @@ impl<'a> DnsQuestion<'a> {
     // find index of class field.
     // TODO: add error handling
     fn parse(&mut self) {
-        let mut i = 0;
+        let mut i = self.offset;
         loop {
             if i >= self.raw.len() {
                 break;
@@ -112,7 +115,7 @@ impl<'a> DnsQuestion<'a> {
 
     // get the length of the question
     pub fn get_length(&self) -> usize {
-        self.class_index + 2
+        self.class_index + 2 - self.offset
     }
 }
 
@@ -320,7 +323,7 @@ impl<'a> DnsPacket<'a> {
                 return Err(());
             }
 
-            let q = DnsQuestion::new(&self.raw[offset..]);
+            let q = DnsQuestion::new(&self.raw, offset);
             match q {
                 None => return Err(()),
                 Some(q) => {
