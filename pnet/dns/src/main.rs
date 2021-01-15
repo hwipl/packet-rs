@@ -174,61 +174,18 @@ impl<'a> DnsAnswer<'a> {
     // find index of data field.
     // TODO: add error handling
     fn parse(&mut self) {
-        let mut i = self.offset;
-        let mut is_reference = false;
-        loop {
-            if i >= self.raw.len() {
-                break;
-            }
-            // get length of current label from first byte
-            let length: usize = usize::from(self.raw[i]);
+        // parse labels
+        let (next_index, label_indexes) = parse_labels(self.raw, self.offset);
 
-            // have we reached end of labels?
-            if length == 0 {
-                // if we reached this end of labels while following a
-                // label reference, do not update indexes, they have
-                // been updated before following the reference
-                if is_reference {
-                    break;
-                }
+        // set label indexes
+        self.label_indexes = label_indexes;
 
-                // save indexes of type, class, ttl, data length, data fields
-                self.type_index = i + 1;
-                self.class_index = i + 3;
-                self.ttl_index = i + 5;
-                self.data_length_index = i + 9;
-                self.data_index = i + 11;
-                break;
-            }
-
-            // is current label a reference to a previous one?
-            if length & 0b11000000 != 0 {
-                if !is_reference {
-                    // this is the first reference in this answer, so this
-                    // marks the end of this answer's labels;
-                    // save indexes of type, class, ttl, data length,
-                    // data fields
-                    self.type_index = i + 2;
-                    self.class_index = i + 4;
-                    self.ttl_index = i + 6;
-                    self.data_length_index = i + 10;
-                    self.data_index = i + 12;
-                }
-
-                // follow reference to previous label
-                // TODO: add error handling
-                is_reference = true;
-                let raw_index = [self.raw[i] & 0b00111111, self.raw[i + 1]];
-                i = usize::from(read_be_u16(&raw_index));
-                continue;
-            }
-
-            // save current label index
-            self.label_indexes.push(i);
-
-            // skip to next label
-            i += length + 1;
-        }
+        // set indexes of other message fields
+        self.type_index = next_index;
+        self.class_index = self.type_index + 2;
+        self.ttl_index = self.class_index + 2;
+        self.data_length_index = self.ttl_index + 4;
+        self.data_index = self.data_length_index + 2;
     }
 
     // get the name field from raw packet bytes
