@@ -197,19 +197,15 @@ struct DnsPacket<'a> {
     raw: &'a [u8],
 
     // dns questions inside the packet
-    questions_offset: usize,
     questions: Vec<DnsQuestion<'a>>,
 
     // dns answers inside the packet
-    answers_offset: usize,
     answers: Vec<DnsAnswer<'a>>,
 
     // dns authority resource records inside the packet
-    authorities_offset: usize,
     authorities: Vec<DnsAuthority<'a>>,
 
     // dns additional resource records inside the packet
-    additionals_offset: usize,
     additionals: Vec<DnsAdditional<'a>>,
 }
 
@@ -223,77 +219,49 @@ impl<'a> DnsPacket<'a> {
 
         let mut packet = DnsPacket {
             raw: raw,
-            questions_offset: DNS_HEADER_LENGTH,
             questions: Vec::new(),
-            answers_offset: 0,
             answers: Vec::new(),
-            authorities_offset: 0,
             authorities: Vec::new(),
-            additionals_offset: 0,
             additionals: Vec::new(),
         };
-        packet.parse_questions()?;
-        packet.parse_answers()?;
-        packet.parse_authorities()?;
-        packet.parse_additionals()?;
+        packet.parse_records()?;
 
         Ok(packet)
     }
 
-    // parse dns packet and find questions, set answers offset
-    // TODO: improve error handling?
-    fn parse_questions(&mut self) -> Result<(), ()> {
-        let mut offset = self.questions_offset;
+    // parse dns records in the dns packet:
+    // find questions, answers, authorities, additionals
+    // TODO: improve error handling
+    fn parse_records(&mut self) -> Result<(), ()> {
+        // parse questions
+        let mut offset = DNS_HEADER_LENGTH;
         for _ in 0..self.get_questions() {
-            let q = DnsQuestion::parse(&self.raw, offset)?;
+            let q = DnsQuestion::parse(self.raw, offset)?;
             offset += q.get_length();
             self.questions.push(q);
         }
 
-        // set offset to answers section
-        self.answers_offset = offset;
-        return Ok(());
-    }
-
-    // parse dns packet and find answers, set authorities offset
-    // TODO: improve error handling
-    fn parse_answers(&mut self) -> Result<(), ()> {
-        let mut offset = self.answers_offset;
+        // parse answers
         for _ in 0..self.get_answers() {
             let a = DnsAnswer::parse(self.raw, offset)?;
             offset += a.get_length();
             self.answers.push(a);
         }
 
-        // set offset to authorities section
-        self.authorities_offset = offset;
-        return Ok(());
-    }
-
-    // parse dns packet and find authorities, set additionals offset
-    // TODO: improve error handling
-    fn parse_authorities(&mut self) -> Result<(), ()> {
-        let mut offset = self.authorities_offset;
+        // parse authorities
         for _ in 0..self.get_authorities() {
             let a = DnsAuthority::parse(self.raw, offset)?;
             offset += a.get_length();
             self.authorities.push(a);
         }
 
-        // set offset to additionals section
-        self.additionals_offset = offset;
-        return Ok(());
-    }
-
-    // parse dns packet and find additionals
-    // TODO: improve error handling
-    fn parse_additionals(&mut self) -> Result<(), ()> {
-        let mut offset = self.additionals_offset;
+        // parse additionals
         for _ in 0..self.get_additionals() {
             let a = DnsAdditional::parse(self.raw, offset)?;
             offset += a.get_length();
             self.additionals.push(a);
         }
+
         return Ok(());
     }
 
