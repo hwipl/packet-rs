@@ -215,7 +215,7 @@ struct DnsPacket<'a> {
 
 impl<'a> DnsPacket<'a> {
     // create a new dns packet from raw packet bytes
-    pub fn new(raw: &'a [u8]) -> Option<DnsPacket<'a>> {
+    pub fn parse(raw: &'a [u8]) -> Option<DnsPacket<'a>> {
         if raw.len() < DNS_HEADER_LENGTH {
             println!("short dns packet with length {}", raw.len());
             None
@@ -485,7 +485,7 @@ fn main() {
                 }
 
                 // parse dns packet
-                let dns = match DnsPacket::new(packet.payload()) {
+                let dns = match DnsPacket::parse(packet.payload()) {
                     Some(dns) => dns,
                     None => {
                         println!("malformed dns packet");
