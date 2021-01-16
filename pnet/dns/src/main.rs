@@ -36,20 +36,20 @@ struct DnsQuestion<'a> {
 impl<'a> DnsQuestion<'a> {
     // create a new dns question from raw packet bytes
     pub fn new(raw: &'a [u8], offset: usize) -> Option<DnsQuestion<'a>> {
-        if raw.len() < DNS_MIN_QUESTION_LENGTH {
+        if offset >= raw.len() || raw.len() - offset < DNS_MIN_QUESTION_LENGTH {
             println!("short dns question with length {}", raw.len());
-            None
-        } else {
-            let mut question = DnsQuestion {
-                raw: raw,
-                offset: offset,
-                label_indexes: Vec::new(),
-                type_index: 0,
-                class_index: 0,
-            };
-            question.parse();
-            Some(question)
+            return None;
         }
+
+        let mut question = DnsQuestion {
+            raw: raw,
+            offset: offset,
+            label_indexes: Vec::new(),
+            type_index: 0,
+            class_index: 0,
+        };
+        question.parse();
+        Some(question)
     }
 
     // parse the question packet:
