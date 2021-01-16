@@ -40,17 +40,17 @@ impl<'a> DnsQuestion<'a> {
     // find index of type field,
     // find index of class field.
     // TODO: add error handling
-    pub fn parse(raw: &'a [u8], offset: usize) -> Option<DnsQuestion<'a>> {
+    pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsQuestion<'a>, ()> {
         if offset >= raw.len() || raw.len() - offset < DNS_MIN_QUESTION_LENGTH {
             println!("short dns question with length {}", raw.len());
-            return None;
+            return Err(());
         }
 
         // parse labels and find index of next message field
         let (next_index, label_indexes) = parse_labels(raw, offset);
 
         // create and return question
-        Some(DnsQuestion {
+        Ok(DnsQuestion {
             raw: raw,
             offset: offset,
             label_indexes: label_indexes,
@@ -244,14 +244,9 @@ impl<'a> DnsPacket<'a> {
     fn parse_questions(&mut self) -> Result<(), ()> {
         let mut offset = self.questions_offset;
         for _ in 0..self.get_questions() {
-            let q = DnsQuestion::parse(&self.raw, offset);
-            match q {
-                None => return Err(()),
-                Some(q) => {
-                    offset += q.get_length();
-                    self.questions.push(q);
-                }
-            }
+            let q = DnsQuestion::parse(&self.raw, offset)?;
+            offset += q.get_length();
+            self.questions.push(q);
         }
 
         // set offset to answers section
