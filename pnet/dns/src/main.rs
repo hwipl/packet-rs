@@ -122,23 +122,23 @@ struct DnsAnswer<'a> {
 impl<'a> DnsAnswer<'a> {
     // create a new dns question from raw packet bytes
     pub fn new(raw: &'a [u8], offset: usize) -> Option<DnsAnswer<'a>> {
-        if raw.len() < DNS_MIN_ANSWER_LENGTH {
+        if offset > raw.len() || raw.len() - offset < DNS_MIN_ANSWER_LENGTH {
             println!("short dns answer with length {}", raw.len());
-            None
-        } else {
-            let mut answer = DnsAnswer {
-                raw: raw,
-                offset: offset,
-                label_indexes: Vec::new(),
-                type_index: 0,
-                class_index: 0,
-                ttl_index: 0,
-                data_length_index: 0,
-                data_index: 0,
-            };
-            answer.parse();
-            Some(answer)
+            return None;
         }
+
+        let mut answer = DnsAnswer {
+            raw: raw,
+            offset: offset,
+            label_indexes: Vec::new(),
+            type_index: 0,
+            class_index: 0,
+            ttl_index: 0,
+            data_length_index: 0,
+            data_index: 0,
+        };
+        answer.parse();
+        Some(answer)
     }
 
     // parse the answer packet:
