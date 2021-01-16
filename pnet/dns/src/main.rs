@@ -215,28 +215,29 @@ struct DnsPacket<'a> {
 
 impl<'a> DnsPacket<'a> {
     // create a new dns packet from raw packet bytes
-    pub fn parse(raw: &'a [u8]) -> Option<DnsPacket<'a>> {
+    pub fn parse(raw: &'a [u8]) -> Result<DnsPacket<'a>, ()> {
         if raw.len() < DNS_HEADER_LENGTH {
             println!("short dns packet with length {}", raw.len());
-            None
-        } else {
-            let mut packet = DnsPacket {
-                raw: raw,
-                questions_offset: DNS_HEADER_LENGTH,
-                questions: Vec::new(),
-                answers_offset: 0,
-                answers: Vec::new(),
-                authorities_offset: 0,
-                authorities: Vec::new(),
-                additionals_offset: 0,
-                additionals: Vec::new(),
-            };
-            packet.parse_questions().ok()?;
-            packet.parse_answers().ok()?;
-            packet.parse_authorities().ok()?;
-            packet.parse_additionals().ok()?;
-            Some(packet)
+            return Err(());
         }
+
+        let mut packet = DnsPacket {
+            raw: raw,
+            questions_offset: DNS_HEADER_LENGTH,
+            questions: Vec::new(),
+            answers_offset: 0,
+            answers: Vec::new(),
+            authorities_offset: 0,
+            authorities: Vec::new(),
+            additionals_offset: 0,
+            additionals: Vec::new(),
+        };
+        packet.parse_questions()?;
+        packet.parse_answers()?;
+        packet.parse_authorities()?;
+        packet.parse_additionals()?;
+
+        Ok(packet)
     }
 
     // parse dns packet and find questions, set answers offset
@@ -486,8 +487,8 @@ fn main() {
 
                 // parse dns packet
                 let dns = match DnsPacket::parse(packet.payload()) {
-                    Some(dns) => dns,
-                    None => {
+                    Ok(dns) => dns,
+                    Err(_) => {
                         println!("malformed dns packet");
                         continue;
                     }
