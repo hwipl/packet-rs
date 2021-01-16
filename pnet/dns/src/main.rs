@@ -119,7 +119,7 @@ impl<'a> DnsAnswer<'a> {
     // find index of data length field,
     // find index of data field.
     // TODO: add error handling
-    pub fn new(raw: &'a [u8], offset: usize) -> Option<DnsAnswer<'a>> {
+    pub fn parse(raw: &'a [u8], offset: usize) -> Option<DnsAnswer<'a>> {
         if offset > raw.len() || raw.len() - offset < DNS_MIN_ANSWER_LENGTH {
             println!("short dns answer with length {}", raw.len());
             return None;
@@ -264,7 +264,7 @@ impl<'a> DnsPacket<'a> {
     fn parse_answers(&mut self) -> Result<(), ()> {
         let mut offset = self.answers_offset;
         for _ in 0..self.get_answers() {
-            let a = DnsAnswer::new(self.raw, offset);
+            let a = DnsAnswer::parse(self.raw, offset);
             match a {
                 None => return Err(()),
                 Some(a) => {
@@ -284,7 +284,7 @@ impl<'a> DnsPacket<'a> {
     fn parse_authorities(&mut self) -> Result<(), ()> {
         let mut offset = self.authorities_offset;
         for _ in 0..self.get_authorities() {
-            let a = DnsAuthority::new(self.raw, offset);
+            let a = DnsAuthority::parse(self.raw, offset);
             match a {
                 None => return Err(()),
                 Some(a) => {
@@ -304,7 +304,7 @@ impl<'a> DnsPacket<'a> {
     fn parse_additionals(&mut self) -> Result<(), ()> {
         let mut offset = self.additionals_offset;
         for _ in 0..self.get_additionals() {
-            let a = DnsAdditional::new(self.raw, offset);
+            let a = DnsAdditional::parse(self.raw, offset);
             match a {
                 None => return Err(()),
                 Some(a) => {
