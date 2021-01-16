@@ -266,19 +266,8 @@ impl<'a> DnsPacket<'a> {
     // parse dns packet and find questions, set answers offset
     // TODO: improve error handling?
     fn parse_questions(&mut self) -> Result<(), ()> {
-        if self.get_questions() == 0 {
-            self.answers_offset = self.questions_offset;
-            return Ok(());
-        }
-
         let mut offset = self.questions_offset;
         for _ in 0..self.get_questions() {
-            if offset >= self.raw.len() {
-                println!("invalid number of questions and/or packet too short");
-                println!("offset: {}, raw.len(): {}", offset, self.raw.len());
-                return Err(());
-            }
-
             let q = DnsQuestion::new(&self.raw, offset);
             match q {
                 None => return Err(()),
@@ -297,19 +286,8 @@ impl<'a> DnsPacket<'a> {
     // parse dns packet and find answers, set authorities offset
     // TODO: improve error handling
     fn parse_answers(&mut self) -> Result<(), ()> {
-        if self.get_answers() == 0 {
-            self.authorities_offset = self.answers_offset;
-            return Ok(());
-        }
-
         let mut offset = self.answers_offset;
         for _ in 0..self.get_answers() {
-            if offset >= self.raw.len() {
-                println!("invalid number of answers and/or packet too short");
-                println!("offset: {}, raw.len(): {}", offset, self.raw.len());
-                return Err(());
-            }
-
             let a = DnsAnswer::new(self.raw, offset);
             match a {
                 None => return Err(()),
@@ -328,19 +306,8 @@ impl<'a> DnsPacket<'a> {
     // parse dns packet and find authorities, set additionals offset
     // TODO: improve error handling
     fn parse_authorities(&mut self) -> Result<(), ()> {
-        if self.get_authorities() == 0 {
-            self.additionals_offset = self.authorities_offset;
-            return Ok(());
-        }
-
         let mut offset = self.authorities_offset;
         for _ in 0..self.get_authorities() {
-            if offset >= self.raw.len() {
-                println!("invalid number of authorities and/or packet too short");
-                println!("offset: {}, raw.len(): {}", offset, self.raw.len());
-                return Err(());
-            }
-
             let a = DnsAuthority::new(self.raw, offset);
             match a {
                 None => return Err(()),
@@ -359,18 +326,8 @@ impl<'a> DnsPacket<'a> {
     // parse dns packet and find additionals
     // TODO: improve error handling
     fn parse_additionals(&mut self) -> Result<(), ()> {
-        if self.get_additionals() == 0 {
-            return Ok(());
-        }
-
         let mut offset = self.additionals_offset;
         for _ in 0..self.get_additionals() {
-            if offset >= self.raw.len() {
-                println!("invalid number of authorities and/or packet too short");
-                println!("offset: {}, raw.len(): {}", offset, self.raw.len());
-                return Err(());
-            }
-
             let a = DnsAdditional::new(self.raw, offset);
             match a {
                 None => return Err(()),
