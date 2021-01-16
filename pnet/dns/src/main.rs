@@ -34,39 +34,29 @@ struct DnsQuestion<'a> {
 }
 
 impl<'a> DnsQuestion<'a> {
-    // create a new dns question from raw packet bytes
+    // create a new dns question from raw packet bytes,
+    // parse the question packet:
+    // find labels in the raw packet bytes,
+    // find index of type field,
+    // find index of class field.
+    // TODO: add error handling
     pub fn new(raw: &'a [u8], offset: usize) -> Option<DnsQuestion<'a>> {
         if offset >= raw.len() || raw.len() - offset < DNS_MIN_QUESTION_LENGTH {
             println!("short dns question with length {}", raw.len());
             return None;
         }
 
-        let mut question = DnsQuestion {
+        // parse labels and find index of next message field
+        let (next_index, label_indexes) = parse_labels(raw, offset);
+
+        // create and return question
+        Some(DnsQuestion {
             raw: raw,
             offset: offset,
-            label_indexes: Vec::new(),
-            type_index: 0,
-            class_index: 0,
-        };
-        question.parse();
-        Some(question)
-    }
-
-    // parse the question packet:
-    // find labels in the raw packet bytes,
-    // find index of type field,
-    // find index of class field.
-    // TODO: add error handling
-    fn parse(&mut self) {
-        // parse labels
-        let (next_index, label_indexes) = parse_labels(self.raw, self.offset);
-
-        // set label indexes
-        self.label_indexes = label_indexes;
-
-        // set indexes of other message fields
-        self.type_index = next_index;
-        self.class_index = self.type_index + 2;
+            label_indexes: label_indexes,
+            type_index: next_index,
+            class_index: next_index + 2,
+        })
     }
 
     // get the name field from raw packet bytes
