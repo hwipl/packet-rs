@@ -110,27 +110,7 @@ struct DnsAnswer<'a> {
 }
 
 impl<'a> DnsAnswer<'a> {
-    // create a new dns question from raw packet bytes
-    pub fn new(raw: &'a [u8], offset: usize) -> Option<DnsAnswer<'a>> {
-        if offset > raw.len() || raw.len() - offset < DNS_MIN_ANSWER_LENGTH {
-            println!("short dns answer with length {}", raw.len());
-            return None;
-        }
-
-        let mut answer = DnsAnswer {
-            raw: raw,
-            offset: offset,
-            label_indexes: Vec::new(),
-            type_index: 0,
-            class_index: 0,
-            ttl_index: 0,
-            data_length_index: 0,
-            data_index: 0,
-        };
-        answer.parse();
-        Some(answer)
-    }
-
+    // create a new dns answer from raw packet bytes,
     // parse the answer packet:
     // find labels in the raw packet bytes,
     // find index of type field,
@@ -139,19 +119,25 @@ impl<'a> DnsAnswer<'a> {
     // find index of data length field,
     // find index of data field.
     // TODO: add error handling
-    fn parse(&mut self) {
+    pub fn new(raw: &'a [u8], offset: usize) -> Option<DnsAnswer<'a>> {
+        if offset > raw.len() || raw.len() - offset < DNS_MIN_ANSWER_LENGTH {
+            println!("short dns answer with length {}", raw.len());
+            return None;
+        }
+
         // parse labels
-        let (next_index, label_indexes) = parse_labels(self.raw, self.offset);
+        let (next_index, label_indexes) = parse_labels(raw, offset);
 
-        // set label indexes
-        self.label_indexes = label_indexes;
-
-        // set indexes of other message fields
-        self.type_index = next_index;
-        self.class_index = self.type_index + 2;
-        self.ttl_index = self.class_index + 2;
-        self.data_length_index = self.ttl_index + 4;
-        self.data_index = self.data_length_index + 2;
+        Some(DnsAnswer {
+            raw: raw,
+            offset: offset,
+            label_indexes: label_indexes,
+            type_index: next_index,
+            class_index: next_index + 2,
+            ttl_index: next_index + 4,
+            data_length_index: next_index + 8,
+            data_index: next_index + 10,
+        })
     }
 
     // get the name field from raw packet bytes
