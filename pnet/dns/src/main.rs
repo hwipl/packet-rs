@@ -28,9 +28,10 @@ struct DnsQuestion<'a> {
     // indexes of labels within the packet
     label_indexes: Vec<usize>,
 
-    // indexes of type and class fields that are after the labels
-    type_index: usize,
-    class_index: usize,
+    // start index of next message fields after labels:
+    // type (2 byte): next_index
+    // class (2 byte): next_index + 2
+    next_index: usize,
 }
 
 impl<'a> DnsQuestion<'a> {
@@ -54,8 +55,7 @@ impl<'a> DnsQuestion<'a> {
             raw: raw,
             offset: offset,
             label_indexes: label_indexes,
-            type_index: next_index,
-            class_index: next_index + 2,
+            next_index: next_index,
         })
     }
 
@@ -66,19 +66,21 @@ impl<'a> DnsQuestion<'a> {
 
     // get the type field from raw packet bytes
     pub fn get_type(&self) -> u16 {
-        let i = self.type_index;
+        // type is next index after labels
+        let i = self.next_index;
         read_be_u16(&self.raw[i..i + 2])
     }
 
     // get the class field from raw packet bytes
     pub fn get_class(&self) -> u16 {
-        let i = self.class_index;
+        // class is next index + 2 after labels
+        let i = self.next_index + 2;
         read_be_u16(&self.raw[i..i + 2])
     }
 
     // get the length of the question
     pub fn get_length(&self) -> usize {
-        self.class_index + 2 - self.offset
+        self.next_index + 4 - self.offset
     }
 }
 
