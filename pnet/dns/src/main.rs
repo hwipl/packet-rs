@@ -102,13 +102,13 @@ struct DnsAnswer<'a> {
     // indexes of labels within the packet
     label_indexes: Vec<usize>,
 
-    // indexes of type, class, ttl, data length, data fields
-    // that are after the labels
-    type_index: usize,
-    class_index: usize,
-    ttl_index: usize,
-    data_length_index: usize,
-    data_index: usize,
+    // start index of next message fields after labels:
+    // type (2 byte): next_index
+    // class (2 byte): next_index + 2
+    // ttl (4 byte): next_index + 4
+    // data length (2 byte): next_index + 8
+    // data (data length bytes): next_index + 10
+    next_index: usize,
 }
 
 impl<'a> DnsAnswer<'a> {
@@ -134,11 +134,7 @@ impl<'a> DnsAnswer<'a> {
             raw: raw,
             offset: offset,
             label_indexes: label_indexes,
-            type_index: next_index,
-            class_index: next_index + 2,
-            ttl_index: next_index + 4,
-            data_length_index: next_index + 8,
-            data_index: next_index + 10,
+            next_index: next_index,
         })
     }
 
@@ -149,31 +145,31 @@ impl<'a> DnsAnswer<'a> {
 
     // get the type field from raw packet bytes
     pub fn get_type(&self) -> u16 {
-        let i = self.type_index;
+        let i = self.next_index;
         read_be_u16(&self.raw[i..i + 2])
     }
 
     // get the class field from raw packet bytes
     pub fn get_class(&self) -> u16 {
-        let i = self.class_index;
+        let i = self.next_index + 2;
         read_be_u16(&self.raw[i..i + 2])
     }
 
     // get the ttl field from raw packet bytes
     pub fn get_ttl(&self) -> u32 {
-        let i = self.ttl_index;
+        let i = self.next_index + 4;
         read_be_u32(&self.raw[i..i + 4])
     }
 
     // get the data length field from raw packet bytes
     pub fn get_data_length(&self) -> u16 {
-        let i = self.data_length_index;
+        let i = self.next_index + 8;
         read_be_u16(&self.raw[i..i + 2])
     }
 
     // get the length of the answer
     pub fn get_length(&self) -> usize {
-        self.data_index + usize::from(self.get_data_length()) - self.offset
+        self.next_index + 10 + usize::from(self.get_data_length()) - self.offset
     }
 }
 
