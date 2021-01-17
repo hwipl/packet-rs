@@ -43,6 +43,63 @@ struct DnsRecord<'a> {
 }
 
 impl<'a> DnsRecord<'a> {
+    // parse labels inside raw packet data starting at offset,
+    // return the index of the next message field after the labels
+    // and a list of label indexes
+    fn parse_labels(raw: &[u8], offset: usize) -> (usize, Vec<usize>) {
+        let mut i = offset;
+        let mut is_reference = false;
+        let mut label_indexes = Vec::new();
+        let mut next_index = 0;
+        loop {
+            if i >= raw.len() {
+                break;
+            }
+            // get length of current label from first byte
+            let length: usize = usize::from(raw[i]);
+
+            // have we reached end of labels?
+            if length == 0 {
+                // if we reached this end of labels while following a
+                // label reference, do not update indexes, they have
+                // been updated before following the reference
+                if is_reference {
+                    break;
+                }
+
+                // save indexes of type, class, ttl, data length, data fields
+                next_index = i + 1;
+                break;
+            }
+
+            // is current label a reference to a previous one?
+            if length & 0b11000000 != 0 {
+                if !is_reference {
+                    // this is the first reference in this answer, so this
+                    // marks the end of this answer's labels;
+                    // save indexes of type, class, ttl, data length,
+                    // data fields
+                    next_index = i + 2;
+                }
+
+                // follow reference to previous label
+                // TODO: add error handling
+                is_reference = true;
+                let raw_index = [raw[i] & 0b00111111, raw[i + 1]];
+                i = usize::from(read_be_u16(&raw_index));
+                continue;
+            }
+
+            // save current label index
+            label_indexes.push(i);
+
+            // skip to next label
+            i += length + 1;
+        }
+
+        return (next_index, label_indexes);
+    }
+
     // create a new dns resource record from raw packet bytes,
     // parse the dns resource record packet:
     // * find labels in the raw packet bytes,
@@ -57,7 +114,7 @@ impl<'a> DnsRecord<'a> {
         }
 
         // parse labels
-        let (next_index, label_indexes) = parse_labels(raw, offset);
+        let (next_index, label_indexes) = DnsRecord::parse_labels(raw, offset);
 
         // retur dns record
         Ok(DnsRecord {
@@ -379,63 +436,6 @@ impl<'a> fmt::Display for DnsPacket<'a> {
             self.get_additionals(),
         )
     }
-}
-
-// parse labels inside raw packet data starting at offset,
-// return the index of the next message field after the labels
-// and a list of label indexes
-fn parse_labels(raw: &[u8], offset: usize) -> (usize, Vec<usize>) {
-    let mut i = offset;
-    let mut is_reference = false;
-    let mut label_indexes = Vec::new();
-    let mut next_index = 0;
-    loop {
-        if i >= raw.len() {
-            break;
-        }
-        // get length of current label from first byte
-        let length: usize = usize::from(raw[i]);
-
-        // have we reached end of labels?
-        if length == 0 {
-            // if we reached this end of labels while following a
-            // label reference, do not update indexes, they have
-            // been updated before following the reference
-            if is_reference {
-                break;
-            }
-
-            // save indexes of type, class, ttl, data length, data fields
-            next_index = i + 1;
-            break;
-        }
-
-        // is current label a reference to a previous one?
-        if length & 0b11000000 != 0 {
-            if !is_reference {
-                // this is the first reference in this answer, so this
-                // marks the end of this answer's labels;
-                // save indexes of type, class, ttl, data length,
-                // data fields
-                next_index = i + 2;
-            }
-
-            // follow reference to previous label
-            // TODO: add error handling
-            is_reference = true;
-            let raw_index = [raw[i] & 0b00111111, raw[i + 1]];
-            i = usize::from(read_be_u16(&raw_index));
-            continue;
-        }
-
-        // save current label index
-        label_indexes.push(i);
-
-        // skip to next label
-        i += length + 1;
-    }
-
-    return (next_index, label_indexes);
 }
 
 // get the name from labels inside raw packet bytes
