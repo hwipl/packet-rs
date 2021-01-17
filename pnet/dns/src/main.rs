@@ -153,20 +153,7 @@ impl<'a> DnsQuestion<'a> {
 //
 // use methods to read fields from question
 struct DnsAnswer<'a> {
-    // raw packet data and offset to dns answer inside the packet data
-    raw: &'a [u8],
-    offset: usize,
-
-    // indexes of labels within the packet
-    label_indexes: Vec<usize>,
-
-    // start index of next message fields after labels:
-    // type (2 byte): next_index
-    // class (2 byte): next_index + 2
-    // ttl (4 byte): next_index + 4
-    // data length (2 byte): next_index + 8
-    // data (data length bytes): next_index + 10
-    next_index: usize,
+    record: DnsRecord<'a>,
 }
 
 impl<'a> DnsAnswer<'a> {
@@ -180,54 +167,45 @@ impl<'a> DnsAnswer<'a> {
     // find index of data field.
     // TODO: add error handling
     pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsAnswer<'a>, ()> {
-        if offset > raw.len() || raw.len() - offset < DNS_MIN_ANSWER_LENGTH {
+        if raw.len() - offset < DNS_MIN_ANSWER_LENGTH {
             println!("short dns answer with length {}", raw.len());
             return Err(());
         }
 
-        // parse labels
-        let (next_index, label_indexes) = parse_labels(raw, offset);
-
         Ok(DnsAnswer {
-            raw: raw,
-            offset: offset,
-            label_indexes: label_indexes,
-            next_index: next_index,
+            record: DnsRecord::parse(raw, offset)?,
         })
     }
 
     // get the name field from raw packet bytes
     pub fn get_name(&self) -> String {
-        return get_name_from_labels(self.raw, &self.label_indexes);
+        self.record.get_name()
     }
 
     // get the type field from raw packet bytes
     pub fn get_type(&self) -> u16 {
-        let i = self.next_index;
-        read_be_u16(&self.raw[i..i + 2])
+        self.record.get_type()
     }
 
     // get the class field from raw packet bytes
     pub fn get_class(&self) -> u16 {
-        let i = self.next_index + 2;
-        read_be_u16(&self.raw[i..i + 2])
+        self.record.get_class()
     }
 
     // get the ttl field from raw packet bytes
     pub fn get_ttl(&self) -> u32 {
-        let i = self.next_index + 4;
-        read_be_u32(&self.raw[i..i + 4])
+        self.record.get_ttl()
     }
 
     // get the data length field from raw packet bytes
     pub fn get_data_length(&self) -> u16 {
-        let i = self.next_index + 8;
-        read_be_u16(&self.raw[i..i + 2])
+        self.record.get_data_length()
     }
 
     // get the length of the answer
     pub fn get_length(&self) -> usize {
-        self.next_index + 10 + usize::from(self.get_data_length()) - self.offset
+        self.record.next_index + 10 + usize::from(self.record.get_data_length())
+            - self.record.offset
     }
 }
 
