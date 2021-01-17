@@ -130,9 +130,31 @@ impl<'a> DnsRecord<'a> {
         self.next_index - self.offset
     }
 
+    // get the name from labels inside raw packet bytes
+    fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> String {
+        let mut name = String::new();
+        for i in label_indexes {
+            // get length of current label from first byte
+            let length: usize = usize::from(raw[*i]);
+
+            // read domain name part from current label
+            let j = i + 1;
+            let part = match str::from_utf8(&raw[j..j + length]) {
+                Ok(part) => part,
+                Err(err) => {
+                    println!("{}", err);
+                    "<error>"
+                }
+            };
+            name.push_str(part);
+            name += ".";
+        }
+        return name;
+    }
+
     // get the name field from raw packet bytes
     fn get_name(&self) -> String {
-        return get_name_from_labels(self.raw, &self.label_indexes);
+        return DnsRecord::get_name_from_labels(self.raw, &self.label_indexes);
     }
 
     // get the type field from raw packet bytes
@@ -436,28 +458,6 @@ impl<'a> fmt::Display for DnsPacket<'a> {
             self.get_additionals(),
         )
     }
-}
-
-// get the name from labels inside raw packet bytes
-fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> String {
-    let mut name = String::new();
-    for i in label_indexes {
-        // get length of current label from first byte
-        let length: usize = usize::from(raw[*i]);
-
-        // read domain name part from current label
-        let j = i + 1;
-        let part = match str::from_utf8(&raw[j..j + length]) {
-            Ok(part) => part,
-            Err(err) => {
-                println!("{}", err);
-                "<error>"
-            }
-        };
-        name.push_str(part);
-        name += ".";
-    }
-    return name;
 }
 
 // convert a 16 bit field from big endian to native byte order
