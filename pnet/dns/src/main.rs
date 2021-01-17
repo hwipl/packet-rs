@@ -131,15 +131,15 @@ impl<'a> DnsRecord<'a> {
     }
 
     // get the name from labels inside raw packet bytes
-    fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> String {
+    fn get_name(&self) -> String {
         let mut name = String::new();
-        for i in label_indexes {
+        for i in &self.label_indexes {
             // get length of current label from first byte
-            let length: usize = usize::from(raw[*i]);
+            let length: usize = usize::from(self.raw[*i]);
 
             // read domain name part from current label
             let j = i + 1;
-            let part = match str::from_utf8(&raw[j..j + length]) {
+            let part = match str::from_utf8(&self.raw[j..j + length]) {
                 Ok(part) => part,
                 Err(err) => {
                     println!("{}", err);
@@ -150,11 +150,6 @@ impl<'a> DnsRecord<'a> {
             name += ".";
         }
         return name;
-    }
-
-    // get the name field from raw packet bytes
-    fn get_name(&self) -> String {
-        return DnsRecord::get_name_from_labels(self.raw, &self.label_indexes);
     }
 
     // get the type field from raw packet bytes
