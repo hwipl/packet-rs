@@ -13,6 +13,93 @@ const DNS_MIN_ANSWER_LENGTH: usize = 11;
 const DNS_MIN_QUESTION_LENGTH: usize = 5;
 const DNS_PORT: u16 = 53;
 
+// common struct for dns records
+//
+// dns resource records consist of the following fields:
+// * Name (variable number of labels terminated by 0 label)
+// * Type (16 bits)
+// * Class (16 bits)
+// * TTL (32 bits)            (not in dns questions)
+// * Data Length (16 bits)    (not in dns questions)
+// * Data (Data Length bytes) (not in dns questions)
+//
+// use methods to read fields from dns record;
+// be careful to not use ttl, data length and data functions in dns questions!
+struct DnsRecord<'a> {
+    // raw packet data and offset to resource record inside the packet data
+    raw: &'a [u8],
+    offset: usize,
+
+    // indexes of labels within the packet
+    label_indexes: Vec<usize>,
+
+    // start index of next message fields after labels:
+    // * type (2 byte): next_index
+    // * class (2 byte): next_index + 2
+    // * ttl (4 byte): next_index + 4
+    // * data length (2 byte): next_index + 8
+    // * data (data length bytes): next_index + 10
+    next_index: usize,
+}
+
+impl<'a> DnsRecord<'a> {
+    // create a new dns resource record from raw packet bytes,
+    // parse the dns resource record packet:
+    // * find labels in the raw packet bytes,
+    // * find first index of next fields in packet:
+    //   type, class, ttl, data length, data.
+    // TODO: add error handling
+    fn parse(raw: &'a [u8], offset: usize) -> Result<DnsRecord<'a>, ()> {
+        // check offset and minimum size
+        if offset > raw.len() || raw.len() - offset < DNS_MIN_QUESTION_LENGTH {
+            println!("short dns answer with length {}", raw.len());
+            return Err(());
+        }
+
+        // parse labels
+        let (next_index, label_indexes) = parse_labels(raw, offset);
+
+        // retur dns record
+        Ok(DnsRecord {
+            raw: raw,
+            offset: offset,
+            label_indexes: label_indexes,
+            next_index: next_index,
+        })
+    }
+
+    // get the name field from raw packet bytes
+    fn get_name(&self) -> String {
+        return get_name_from_labels(self.raw, &self.label_indexes);
+    }
+
+    // get the type field from raw packet bytes
+    fn get_type(&self) -> u16 {
+        let i = self.next_index;
+        read_be_u16(&self.raw[i..i + 2])
+    }
+
+    // get the class field from raw packet bytes
+    fn get_class(&self) -> u16 {
+        let i = self.next_index + 2;
+        read_be_u16(&self.raw[i..i + 2])
+    }
+
+    // get the ttl field from raw packet bytes;
+    // note: do not use in dns question
+    fn get_ttl(&self) -> u32 {
+        let i = self.next_index + 4;
+        read_be_u32(&self.raw[i..i + 4])
+    }
+
+    // get the data length field from raw packet bytes;
+    // note: do not use in dns question
+    fn get_data_length(&self) -> u16 {
+        let i = self.next_index + 8;
+        read_be_u16(&self.raw[i..i + 2])
+    }
+}
+
 // dns question conists of the following fields:
 //
 // Name (variable number of labels terminated by 0 label)
