@@ -44,19 +44,18 @@ struct DnsRecord<'a> {
 
 impl<'a> DnsRecord<'a> {
     // parse labels inside raw packet data starting at offset,
-    // return the index of the next message field after the labels
-    // and a list of label indexes
-    fn parse_labels(raw: &[u8], offset: usize) -> (usize, Vec<usize>) {
-        let mut i = offset;
+    // sets the index of the next message field after the labels
+    // and adds all labels to the list of label indexes
+    // TODO: add error handling
+    fn parse_labels(&mut self) {
+        let mut i = self.offset;
         let mut is_reference = false;
-        let mut label_indexes = Vec::new();
-        let mut next_index = 0;
         loop {
-            if i >= raw.len() {
+            if i >= self.raw.len() {
                 break;
             }
             // get length of current label from first byte
-            let length: usize = usize::from(raw[i]);
+            let length: usize = usize::from(self.raw[i]);
 
             // have we reached end of labels?
             if length == 0 {
@@ -68,7 +67,7 @@ impl<'a> DnsRecord<'a> {
                 }
 
                 // save indexes of type, class, ttl, data length, data fields
-                next_index = i + 1;
+                self.next_index = i + 1;
                 break;
             }
 
@@ -79,25 +78,23 @@ impl<'a> DnsRecord<'a> {
                     // marks the end of this answer's labels;
                     // save indexes of type, class, ttl, data length,
                     // data fields
-                    next_index = i + 2;
+                    self.next_index = i + 2;
                 }
 
                 // follow reference to previous label
                 // TODO: add error handling
                 is_reference = true;
-                let raw_index = [raw[i] & 0b00111111, raw[i + 1]];
+                let raw_index = [self.raw[i] & 0b00111111, self.raw[i + 1]];
                 i = usize::from(read_be_u16(&raw_index));
                 continue;
             }
 
             // save current label index
-            label_indexes.push(i);
+            self.label_indexes.push(i);
 
             // skip to next label
             i += length + 1;
         }
-
-        return (next_index, label_indexes);
     }
 
     // create a new dns resource record from raw packet bytes,
@@ -113,16 +110,19 @@ impl<'a> DnsRecord<'a> {
             return Err(());
         }
 
-        // parse labels
-        let (next_index, label_indexes) = DnsRecord::parse_labels(raw, offset);
-
         // retur dns record
-        Ok(DnsRecord {
+        let mut record = DnsRecord {
             raw: raw,
             offset: offset,
-            label_indexes: label_indexes,
-            next_index: next_index,
-        })
+            label_indexes: Vec::new(),
+            next_index: 0,
+        };
+
+        // parse labels
+        record.parse_labels();
+
+        // return record
+        Ok(record)
     }
 
     // get the length of the labels in this dns record
