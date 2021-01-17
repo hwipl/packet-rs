@@ -108,66 +108,37 @@ impl<'a> DnsRecord<'a> {
 //
 // use methods to read fields from question
 struct DnsQuestion<'a> {
-    // raw packet data and offset to dns question inside the packet data
-    raw: &'a [u8],
-    offset: usize,
-
-    // indexes of labels within the packet
-    label_indexes: Vec<usize>,
-
-    // start index of next message fields after labels:
-    // type (2 byte): next_index
-    // class (2 byte): next_index + 2
-    next_index: usize,
+    record: DnsRecord<'a>,
 }
 
 impl<'a> DnsQuestion<'a> {
     // create a new dns question from raw packet bytes,
     // parse the question packet:
-    // find labels in the raw packet bytes,
-    // find index of type field,
-    // find index of class field.
-    // TODO: add error handling
     pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsQuestion<'a>, ()> {
-        if offset >= raw.len() || raw.len() - offset < DNS_MIN_QUESTION_LENGTH {
-            println!("short dns question with length {}", raw.len());
-            return Err(());
-        }
-
-        // parse labels and find index of next message field
-        let (next_index, label_indexes) = parse_labels(raw, offset);
-
         // create and return question
         Ok(DnsQuestion {
-            raw: raw,
-            offset: offset,
-            label_indexes: label_indexes,
-            next_index: next_index,
+            record: DnsRecord::parse(raw, offset)?,
         })
     }
 
     // get the name field from raw packet bytes
     pub fn get_name(&self) -> String {
-        return get_name_from_labels(self.raw, &self.label_indexes);
+        self.record.get_name()
     }
 
     // get the type field from raw packet bytes
     pub fn get_type(&self) -> u16 {
-        // type is next index after labels
-        let i = self.next_index;
-        read_be_u16(&self.raw[i..i + 2])
+        self.record.get_type()
     }
 
     // get the class field from raw packet bytes
     pub fn get_class(&self) -> u16 {
-        // class is next index + 2 after labels
-        let i = self.next_index + 2;
-        read_be_u16(&self.raw[i..i + 2])
+        self.record.get_class()
     }
 
     // get the length of the question
     pub fn get_length(&self) -> usize {
-        self.next_index + 4 - self.offset
+        self.record.next_index + 4 - self.record.offset
     }
 }
 
