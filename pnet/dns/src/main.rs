@@ -68,6 +68,11 @@ impl<'a> DnsRecord<'a> {
         })
     }
 
+    // get the length of the labels in this dns record
+    fn get_labels_length(&self) -> usize {
+        self.next_index - self.offset
+    }
+
     // get the name field from raw packet bytes
     fn get_name(&self) -> String {
         return get_name_from_labels(self.raw, &self.label_indexes);
@@ -138,7 +143,7 @@ impl<'a> DnsQuestion<'a> {
 
     // get the length of the question
     pub fn get_length(&self) -> usize {
-        self.record.next_index + 4 - self.record.offset
+        self.record.get_labels_length() + 4
     }
 }
 
@@ -204,8 +209,7 @@ impl<'a> DnsAnswer<'a> {
 
     // get the length of the answer
     pub fn get_length(&self) -> usize {
-        self.record.next_index + 10 + usize::from(self.record.get_data_length())
-            - self.record.offset
+        self.record.get_labels_length() + 10 + usize::from(self.record.get_data_length())
     }
 }
 
