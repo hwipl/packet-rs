@@ -177,6 +177,13 @@ impl<'a> DnsRecord<'a> {
         let i = self.next_index + 8;
         read_be_u16(&self.raw[i..i + 2])
     }
+
+    // get the data field from raw packet bytes;
+    // note: do not use in dns question
+    fn get_data(&self) -> &[u8] {
+        let i = self.next_index + 10;
+        &self.raw[i..i + usize::from(self.get_data_length())]
+    }
 }
 
 // dns question conists of the following fields:
@@ -279,6 +286,11 @@ impl<'a> DnsAnswer<'a> {
     // get the data length field from raw packet bytes
     pub fn get_data_length(&self) -> u16 {
         self.record.get_data_length()
+    }
+
+    // get the data field from raw packet bytes;
+    fn get_data(&self) -> &[u8] {
+        self.record.get_data()
     }
 
     // get the length of the answer
@@ -520,6 +532,7 @@ fn main() {
                             println!("  Class: {}", answer.get_class());
                             println!("  TTL: {}", answer.get_ttl());
                             println!("  Data Length: {}", answer.get_data_length());
+                            println!("  Data: {:?}", answer.get_data());
                         }
                     }
                 }
@@ -535,6 +548,7 @@ fn main() {
                             println!("  Class: {}", authority.get_class());
                             println!("  TTL: {}", authority.get_ttl());
                             println!("  Data Length: {}", authority.get_data_length());
+                            println!("  Data: {:?}", authority.get_data());
                         }
                     }
                 }
@@ -550,6 +564,7 @@ fn main() {
                             println!("  Class: {}", additional.get_class());
                             println!("  TTL: {}", additional.get_ttl());
                             println!("  Data Length: {}", additional.get_data_length());
+                            println!("  Data: {:?}", additional.get_data());
                         }
                     }
                 }
