@@ -319,6 +319,21 @@ impl<'a> DnsAnswer<'a> {
     }
 }
 
+impl<'a> fmt::Display for DnsAnswer<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{{name: {}, type: {}, class: {}, ttl: {}, data length: {}, data: {:?}}}",
+            self.get_name(),
+            self.get_type(),
+            self.get_class(),
+            self.get_ttl(),
+            self.get_data_length(),
+            self.get_data(),
+        )
+    }
+}
+
 // dns authority resource record consists of the same fields as dns answer,
 // so reuse DnsAnswer for this
 type DnsAuthority<'a> = DnsAnswer<'a>;
@@ -543,13 +558,7 @@ fn main() {
                     match dns.get_answer(i) {
                         None => {}
                         Some(answer) => {
-                            println!("Answer {}:", i);
-                            println!("  Name: {}", answer.get_name());
-                            println!("  Type: {}", answer.get_type());
-                            println!("  Class: {}", answer.get_class());
-                            println!("  TTL: {}", answer.get_ttl());
-                            println!("  Data Length: {}", answer.get_data_length());
-                            println!("  Data: {:?}", answer.get_data());
+                            println!("Answer {}: {}", i, answer);
                         }
                     }
                 }
@@ -559,13 +568,7 @@ fn main() {
                     match dns.get_authority(i) {
                         None => {}
                         Some(authority) => {
-                            println!("Authority {}:", i);
-                            println!("  Name: {}", authority.get_name());
-                            println!("  Type: {}", authority.get_type());
-                            println!("  Class: {}", authority.get_class());
-                            println!("  TTL: {}", authority.get_ttl());
-                            println!("  Data Length: {}", authority.get_data_length());
-                            println!("  Data: {:?}", authority.get_data());
+                            println!("Authority {}: {}", i, authority);
                         }
                     }
                 }
@@ -575,13 +578,7 @@ fn main() {
                     match dns.get_additional(i) {
                         None => {}
                         Some(additional) => {
-                            println!("Additional {}:", i);
-                            println!("  Name: {}", additional.get_name());
-                            println!("  Type: {}", additional.get_type());
-                            println!("  Class: {}", additional.get_class());
-                            println!("  TTL: {}", additional.get_ttl());
-                            println!("  Data Length: {}", additional.get_data_length());
-                            println!("  Data: {:?}", additional.get_data());
+                            println!("Additional {}: {}", i, additional);
                         }
                     }
                 }
