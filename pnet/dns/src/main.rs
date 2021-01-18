@@ -236,6 +236,18 @@ impl<'a> DnsQuestion<'a> {
     }
 }
 
+impl<'a> fmt::Display for DnsQuestion<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{{name: {}, type: {}, class: {}}}",
+            self.get_name(),
+            self.get_type(),
+            self.get_class(),
+        )
+    }
+}
+
 // dns answer consists of the following fields:
 //
 // Name (variable number of labels terminated by 0 label)
@@ -521,10 +533,7 @@ fn main() {
                     match dns.get_question(0) {
                         None => {}
                         Some(question) => {
-                            println!("Question {}:", i);
-                            println!("  Name: {}", question.get_name());
-                            println!("  Type: {}", question.get_type());
-                            println!("  Class: {}", question.get_class());
+                            println!("Question {}: {}", i, question);
                         }
                     }
                 }
