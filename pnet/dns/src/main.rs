@@ -81,10 +81,16 @@ impl<'a> DnsRecord<'a> {
                 }
 
                 // follow reference to previous label
-                // TODO: add error handling
                 is_reference = true;
                 let raw_index = [self.raw[i] & 0b00111111, self.raw[i + 1]];
-                i = usize::from(read_be_u16(&raw_index));
+                let new_i = usize::from(read_be_u16(&raw_index));
+
+                // reference must point to previous label
+                if new_i >= i {
+                    return Err(());
+                }
+                i = new_i;
+
                 continue;
             }
 
