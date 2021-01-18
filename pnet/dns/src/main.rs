@@ -46,13 +46,12 @@ impl<'a> DnsRecord<'a> {
     // parse labels inside raw packet data starting at offset,
     // sets the index of the next message field after the labels
     // and adds all labels to the list of label indexes
-    // TODO: add error handling
-    fn parse_labels(&mut self) {
+    fn parse_labels(&mut self) -> Result<(), ()> {
         let mut i = self.offset;
         let mut is_reference = false;
         loop {
             if i >= self.raw.len() {
-                break;
+                return Err(());
             }
             // get length of current label from first byte
             let length: usize = usize::from(self.raw[i]);
@@ -95,6 +94,9 @@ impl<'a> DnsRecord<'a> {
             // skip to next label
             i += length + 1;
         }
+
+        // parsing successful
+        return Ok(());
     }
 
     // create a new dns resource record from raw packet bytes,
@@ -119,7 +121,7 @@ impl<'a> DnsRecord<'a> {
         };
 
         // parse labels
-        record.parse_labels();
+        record.parse_labels()?;
 
         // return record
         Ok(record)
