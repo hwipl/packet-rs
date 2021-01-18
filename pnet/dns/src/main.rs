@@ -489,16 +489,48 @@ impl<'a> DnsPacket<'a> {
 
 impl<'a> fmt::Display for DnsPacket<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // dns packet header
         write!(
             f,
-            "{{id: {}, flags: {}, questions: {}, answers: {}, authorities: {}, additionals: {}}}",
+            "{{id: {}, flags: {}, questions: {}, answers: {}, authorities: {}, additionals: {}",
             self.get_id(),
             self.get_flags(),
             self.get_questions(),
             self.get_answers(),
             self.get_authorities(),
             self.get_additionals(),
-        )
+        )?;
+
+        // dns questions
+        for i in 0..self.get_questions().into() {
+            if let Some(question) = self.get_question(i) {
+                write!(f, ", question {}: {}", i, question)?;
+            }
+        }
+
+        // dns answers
+        for i in 0..self.get_answers().into() {
+            if let Some(answer) = self.get_answer(i) {
+                write!(f, ", answer {}: {}", i, answer)?;
+            }
+        }
+
+        // dns authorities
+        for i in 0..self.get_authorities().into() {
+            if let Some(authority) = self.get_authority(i) {
+                write!(f, ", authority {}: {}", i, authority)?;
+            }
+        }
+
+        // dns additionals
+        for i in 0..self.get_additionals().into() {
+            if let Some(additional) = self.get_additional(i) {
+                write!(f, ", additional {}: {}", i, additional)?;
+            }
+        }
+
+        // closing brackets
+        write!(f, "}}")
     }
 }
 
@@ -542,46 +574,6 @@ fn main() {
                     }
                 };
                 println!("got dns packet from {}: {}", addr, dns);
-
-                // handle questions in dns packet
-                for i in 0..dns.get_questions().into() {
-                    match dns.get_question(0) {
-                        None => {}
-                        Some(question) => {
-                            println!("Question {}: {}", i, question);
-                        }
-                    }
-                }
-
-                // handle answers in dns packet
-                for i in 0..dns.get_answers().into() {
-                    match dns.get_answer(i) {
-                        None => {}
-                        Some(answer) => {
-                            println!("Answer {}: {}", i, answer);
-                        }
-                    }
-                }
-
-                // handle authorities in dns packet
-                for i in 0..dns.get_authorities().into() {
-                    match dns.get_authority(i) {
-                        None => {}
-                        Some(authority) => {
-                            println!("Authority {}: {}", i, authority);
-                        }
-                    }
-                }
-
-                // handle additionals in dns packet
-                for i in 0..dns.get_additionals().into() {
-                    match dns.get_additional(i) {
-                        None => {}
-                        Some(additional) => {
-                            println!("Additional {}: {}", i, additional);
-                        }
-                    }
-                }
             }
             Err(e) => {
                 panic!("An error occurred while reading: {}", e);
