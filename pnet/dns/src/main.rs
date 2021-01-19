@@ -345,7 +345,9 @@ type DnsAdditional<'a> = DnsAnswer<'a>;
 // dns packet consists of the following 16 bit fields:
 //
 // Identification,
-// Flags,
+// Flags/codes
+//   (QR (1 bit),  Opcode (4 bits), AA (1 bit), TC (1 bit), RD (1 bit),
+//    RA (1 bit), Z (3 bits), RCODE (4 bits)),
 // Number of questions,
 // Number of answers,
 // Number of authority resource records (RRs)
@@ -429,9 +431,44 @@ impl<'a> DnsPacket<'a> {
         read_be_u16(&self.raw[0..2])
     }
 
-    // get flags from packet
-    pub fn get_flags(&self) -> u16 {
-        read_be_u16(&self.raw[2..4])
+    // get Query (0)/Response (1) bit from packet
+    pub fn get_qr(&self) -> u8 {
+        (self.raw[2] & 0b10000000) >> 7
+    }
+
+    // get OPCODE bits (4 bits) from packet
+    pub fn get_opcode(&self) -> u8 {
+        (self.raw[2] & 0b01111000) >> 3
+    }
+
+    // get Authoritative Answer (AA) bit from packet
+    pub fn get_aa(&self) -> u8 {
+        (self.raw[2] & 0b00000100) >> 2
+    }
+
+    // get TrunCation (TC) bit from packet
+    pub fn get_tc(&self) -> u8 {
+        (self.raw[2] & 0b00000010) >> 1
+    }
+
+    // get Recursion Desired (RD) bit from packet
+    pub fn get_rd(&self) -> u8 {
+        self.raw[2] & 0b00000001
+    }
+
+    // get Recursion Available (RA) bit from packet
+    pub fn get_ra(&self) -> u8 {
+        (self.raw[3] & 0b10000000) >> 7
+    }
+
+    // get reserved (Z) bits (3 bits) from packet
+    pub fn get_z(&self) -> u8 {
+        (self.raw[3] & 0b01110000) >> 4
+    }
+
+    // get response code (RCODE) bits (4 bits) from packet
+    pub fn get_rcode(&self) -> u8 {
+        self.raw[3] & 0b00001111
     }
 
     // get number of questions from packet
@@ -492,9 +529,18 @@ impl<'a> fmt::Display for DnsPacket<'a> {
         // dns packet header
         write!(
             f,
-            "{{id: {}, flags: {}, questions: {}, answers: {}, authorities: {}, additionals: {}",
+            "{{id: {}, qr: {}, opcode: {}, aa: {}, tc: {}, rd: {}, ra: {}, \
+            z: {}, rcode: {}, questions: {}, answers: {}, authorities: {}, \
+            additionals: {}",
             self.get_id(),
-            self.get_flags(),
+            self.get_qr(),
+            self.get_opcode(),
+            self.get_aa(),
+            self.get_tc(),
+            self.get_rd(),
+            self.get_ra(),
+            self.get_z(),
+            self.get_rcode(),
             self.get_questions(),
             self.get_answers(),
             self.get_authorities(),
