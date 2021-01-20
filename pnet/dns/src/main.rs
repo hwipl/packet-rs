@@ -368,6 +368,17 @@ impl From<u8> for OpCode {
     }
 }
 
+impl From<OpCode> for u8 {
+    fn from(opcode: OpCode) -> u8 {
+        match opcode {
+            OpCode::Query => 0,
+            OpCode::IQuery => 1,
+            OpCode::Status => 2,
+            OpCode::Reserved(code) => code,
+        }
+    }
+}
+
 impl fmt::Display for OpCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
