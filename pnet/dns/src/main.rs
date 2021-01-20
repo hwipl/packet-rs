@@ -342,6 +342,43 @@ type DnsAuthority<'a> = DnsAnswer<'a>;
 // so reuse DnsAnswer for this
 type DnsAdditional<'a> = DnsAnswer<'a>;
 
+// OpCode:
+// a four bit field that specifies kind of query in this
+// message. This value is set by the originator of a query
+// and copied into the response.  The values are:
+// 0               a standard query (QUERY)
+// 1               an inverse query (IQUERY)
+// 2               a server status request (STATUS)
+// 3-15            reserved for future use
+enum OpCode {
+    Query,
+    IQuery,
+    Status,
+    Reserved(u8),
+}
+
+impl From<u8> for OpCode {
+    fn from(code: u8) -> OpCode {
+        match code {
+            0 => OpCode::Query,
+            1 => OpCode::IQuery,
+            2 => OpCode::Status,
+            _ => OpCode::Reserved(code),
+        }
+    }
+}
+
+impl fmt::Display for OpCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            OpCode::Query => write!(f, "0 (query)"),
+            OpCode::IQuery => write!(f, "1 (iqery)"),
+            OpCode::Status => write!(f, "2 (status)"),
+            OpCode::Reserved(value) => write!(f, "{} (reserved)", value),
+        }
+    }
+}
+
 // dns packet consists of the following 16 bit fields:
 //
 // Identification,
@@ -437,8 +474,8 @@ impl<'a> DnsPacket<'a> {
     }
 
     // get OPCODE bits (4 bits) from packet
-    pub fn get_opcode(&self) -> u8 {
-        (self.raw[2] & 0b01111000) >> 3
+    pub fn get_opcode(&self) -> OpCode {
+        ((self.raw[2] & 0b01111000) >> 3).into()
     }
 
     // get Authoritative Answer (AA) bit from packet
