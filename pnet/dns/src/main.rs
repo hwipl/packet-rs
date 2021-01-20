@@ -440,6 +440,20 @@ impl From<u8> for RCode {
     }
 }
 
+impl From<RCode> for u8 {
+    fn from(rcode: RCode) -> u8 {
+        match rcode {
+            RCode::NoError => 0,
+            RCode::FormatError => 1,
+            RCode::ServerFailure => 2,
+            RCode::NameError => 3,
+            RCode::NotImplemented => 4,
+            RCode::Refused => 5,
+            RCode::Reserved(code) => code,
+        }
+    }
+}
+
 impl fmt::Display for RCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
