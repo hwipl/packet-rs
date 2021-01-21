@@ -171,6 +171,38 @@ impl fmt::Display for Class {
     }
 }
 
+// Data:
+enum Data<'a> {
+    A(std::net::Ipv4Addr),
+    Unknown(&'a [u8]),
+}
+
+impl<'a> Data<'a> {
+    fn parse(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Data {
+        let i = offset;
+
+        // only handly class "internet" packets
+        match class {
+            Class::In => {}
+            _ => return Data::Unknown(&raw[i..i + length]),
+        }
+
+        // parse data based on its type
+        match typ {
+            Type::A => Data::A(read_be_u32(&raw[i..i + 4]).into()),
+            _ => Data::Unknown(&raw[i..i + length]),
+        }
+    }
+}
+impl<'a> fmt::Display for Data<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Data::A(addr) => write!(f, "{}", addr),
+            Data::Unknown(unknown) => write!(f, "unknown ({:?})", unknown),
+        }
+    }
+}
+
 // common struct for dns records
 //
 // dns resource records consist of the following fields:
@@ -346,9 +378,15 @@ impl<'a> DnsRecord<'a> {
 
     // get the data field from raw packet bytes;
     // note: do not use in dns question
-    fn get_data(&self) -> &[u8] {
+    fn get_data(&self) -> Data {
         let i = self.next_index + 10;
-        &self.raw[i..i + usize::from(self.get_data_length())]
+        Data::parse(
+            self.raw,
+            i,
+            usize::from(self.get_data_length()),
+            self.get_type(),
+            self.get_class(),
+        )
     }
 }
 
@@ -467,7 +505,7 @@ impl<'a> DnsAnswer<'a> {
     }
 
     // get the data field from raw packet bytes;
-    fn get_data(&self) -> &[u8] {
+    fn get_data(&self) -> Data {
         self.record.get_data()
     }
 
@@ -481,7 +519,7 @@ impl<'a> fmt::Display for DnsAnswer<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{{name: {}, type: {}, class: {}, ttl: {}, data length: {}, data: {:?}}}",
+            "{{name: {}, type: {}, class: {}, ttl: {}, data length: {}, data: {}}}",
             self.get_name(),
             self.get_type(),
             self.get_class(),
