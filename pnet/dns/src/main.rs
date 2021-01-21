@@ -13,6 +13,52 @@ const DNS_MIN_ANSWER_LENGTH: usize = 11;
 const DNS_MIN_QUESTION_LENGTH: usize = 5;
 const DNS_PORT: u16 = 53;
 
+// Class/QClass:
+//
+// CLASS fields appear in resource records.  The following CLASS mnemonics
+// and values are defined:
+// IN              1 the Internet
+// CS              2 the CSNET class (Obsolete - used only for examples in
+//                   some obsolete RFCs)
+// CH              3 the CHAOS class
+// HS              4 Hesiod [Dyer 87]
+//
+// QCLASS fields appear in the question section of a query.  QCLASS values
+// are a superset of CLASS values; every CLASS is a valid QCLASS.  In
+// addition to CLASS values, the following QCLASSes are defined:
+// *               255 any class
+enum Class {
+    In,
+    Cs,
+    Ch,
+    Hs,
+    Unknown(u16),
+}
+
+impl From<u16> for Class {
+    fn from(class: u16) -> Class {
+        match class {
+            1 => Class::In,
+            2 => Class::Cs,
+            3 => Class::Ch,
+            4 => Class::Hs,
+            unknown => Class::Unknown(unknown),
+        }
+    }
+}
+
+impl fmt::Display for Class {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Class::In => write!(f, "1 (internet)"),
+            Class::Cs => write!(f, "2 (csnet)"),
+            Class::Ch => write!(f, "3 (chaos)"),
+            Class::Hs => write!(f, "4 (hesiod)"),
+            Class::Unknown(unknown) => write!(f, "{} (unknown)", unknown),
+        }
+    }
+}
+
 // common struct for dns records
 //
 // dns resource records consist of the following fields:
@@ -167,9 +213,9 @@ impl<'a> DnsRecord<'a> {
     }
 
     // get the class field from raw packet bytes
-    fn get_class(&self) -> u16 {
+    fn get_class(&self) -> Class {
         let i = self.next_index + 2;
-        read_be_u16(&self.raw[i..i + 2])
+        read_be_u16(&self.raw[i..i + 2]).into()
     }
 
     // get the ttl field from raw packet bytes;
@@ -226,7 +272,7 @@ impl<'a> DnsQuestion<'a> {
     }
 
     // get the class field from raw packet bytes
-    pub fn get_class(&self) -> u16 {
+    pub fn get_class(&self) -> Class {
         self.record.get_class()
     }
 
@@ -294,7 +340,7 @@ impl<'a> DnsAnswer<'a> {
     }
 
     // get the class field from raw packet bytes
-    pub fn get_class(&self) -> u16 {
+    pub fn get_class(&self) -> Class {
         self.record.get_class()
     }
 
