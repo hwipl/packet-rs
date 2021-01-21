@@ -13,6 +13,115 @@ const DNS_MIN_ANSWER_LENGTH: usize = 11;
 const DNS_MIN_QUESTION_LENGTH: usize = 5;
 const DNS_PORT: u16 = 53;
 
+// Type/QType
+// TYPE fields are used in resource records.  Note that these types are a
+// subset of QTYPEs.
+//
+// TYPE            value and meaning
+// A               1 a host address
+// NS              2 an authoritative name server
+// MD              3 a mail destination (Obsolete - use MX)
+// MF              4 a mail forwarder (Obsolete - use MX)
+// CNAME           5 the canonical name for an alias
+// SOA             6 marks the start of a zone of authority
+// MB              7 a mailbox domain name (EXPERIMENTAL)
+// MG              8 a mail group member (EXPERIMENTAL)
+// MR              9 a mail rename domain name (EXPERIMENTAL)
+// NULL            10 a null RR (EXPERIMENTAL)
+// WKS             11 a well known service description
+// PTR             12 a domain name pointer
+// HINFO           13 host information
+// MINFO           14 mailbox or mail list information
+// MX              15 mail exchange
+// TXT             16 text strings
+//
+// QTYPE fields appear in the question part of a query.  QTYPES are a
+// superset of TYPEs, hence all TYPEs are valid QTYPEs.  In addition, the
+// following QTYPEs are defined:
+//
+// AXFR            252 A request for a transfer of an entire zone
+// MAILB           253 A request for mailbox-related records (MB, MG or MR)
+// MAILA           254 A request for mail agent RRs (Obsolete - see MX)
+// *               255 A request for all records
+enum Type {
+    A,
+    Ns,
+    Md,
+    Mf,
+    Cname,
+    Soa,
+    Mb,
+    Mg,
+    Mr,
+    Null,
+    Wks,
+    Ptr,
+    Hinfo,
+    Minfo,
+    Mx,
+    Txt,
+    Axfr,
+    Mailb,
+    Maila,
+    All,
+    Unknown(u16),
+}
+
+impl From<u16> for Type {
+    fn from(class: u16) -> Type {
+        match class {
+            1 => Type::A,
+            2 => Type::Ns,
+            3 => Type::Md,
+            4 => Type::Mf,
+            5 => Type::Cname,
+            6 => Type::Soa,
+            7 => Type::Mb,
+            8 => Type::Mg,
+            9 => Type::Mr,
+            10 => Type::Null,
+            11 => Type::Wks,
+            12 => Type::Ptr,
+            13 => Type::Hinfo,
+            14 => Type::Minfo,
+            15 => Type::Mx,
+            16 => Type::Txt,
+            252 => Type::Axfr,
+            253 => Type::Mailb,
+            254 => Type::Maila,
+            255 => Type::All,
+            unknown => Type::Unknown(unknown),
+        }
+    }
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Type::A => write!(f, "1 (a)"),
+            Type::Ns => write!(f, "2 (ns)"),
+            Type::Md => write!(f, "3 (md)"),
+            Type::Mf => write!(f, "4 (mf)"),
+            Type::Cname => write!(f, "5 (cname)"),
+            Type::Soa => write!(f, "6 (soa)"),
+            Type::Mb => write!(f, "7 (mb)"),
+            Type::Mg => write!(f, "8 (mg)"),
+            Type::Mr => write!(f, "9 (mr)"),
+            Type::Null => write!(f, "10 (null)"),
+            Type::Wks => write!(f, "11 (wks)"),
+            Type::Ptr => write!(f, "12 (ptr)"),
+            Type::Hinfo => write!(f, "13 (hinfo)"),
+            Type::Minfo => write!(f, "14 (minfo)"),
+            Type::Mx => write!(f, "15 (mx)"),
+            Type::Txt => write!(f, "16 (txt)"),
+            Type::Axfr => write!(f, "252 (axfr)"),
+            Type::Mailb => write!(f, "253 (mailb)"),
+            Type::Maila => write!(f, "254 (maila)"),
+            Type::All => write!(f, "255 (*)"),
+            Type::Unknown(unknown) => write!(f, "{} (unknown)", unknown),
+        }
+    }
+}
 // Class/QClass:
 //
 // CLASS fields appear in resource records.  The following CLASS mnemonics
@@ -207,9 +316,9 @@ impl<'a> DnsRecord<'a> {
     }
 
     // get the type field from raw packet bytes
-    fn get_type(&self) -> u16 {
+    fn get_type(&self) -> Type {
         let i = self.next_index;
-        read_be_u16(&self.raw[i..i + 2])
+        read_be_u16(&self.raw[i..i + 2]).into()
     }
 
     // get the class field from raw packet bytes
@@ -267,7 +376,7 @@ impl<'a> DnsQuestion<'a> {
     }
 
     // get the type field from raw packet bytes
-    pub fn get_type(&self) -> u16 {
+    pub fn get_type(&self) -> Type {
         self.record.get_type()
     }
 
@@ -335,7 +444,7 @@ impl<'a> DnsAnswer<'a> {
     }
 
     // get the type field from raw packet bytes
-    pub fn get_type(&self) -> u16 {
+    pub fn get_type(&self) -> Type {
         self.record.get_type()
     }
 
