@@ -177,6 +177,7 @@ enum Data<'a> {
     A(std::net::Ipv4Addr),
     Ns(String),
     Cname(String),
+    Soa(String, String, u32, u32, u32, u32, u32),
     Ptr(String),
     Mx(u16, String),
     Aaaa(std::net::Ipv6Addr),
@@ -199,6 +200,18 @@ impl<'a> Data<'a> {
             Type::A => Data::A(read_be_u32(&raw[i..i + 4]).into()),
             Type::Ns => Data::Ns(get_name(raw, i)),
             Type::Cname => Data::Cname(get_name(raw, i)),
+            Type::Soa => {
+                let (mname_labels, i) = parse_labels(raw, i).unwrap();
+                let (rname_labels, i) = parse_labels(raw, i).unwrap();
+                let mname = get_name_from_labels(raw, &mname_labels);
+                let rname = get_name_from_labels(raw, &rname_labels);
+                let serial = read_be_u32(&raw[i..i + 4]);
+                let refresh = read_be_u32(&raw[i + 4..i + 8]);
+                let retry = read_be_u32(&raw[i + 8..i + 12]);
+                let expire = read_be_u32(&raw[i + 12..i + 16]);
+                let minimum = read_be_u32(&raw[i + 16..i + 20]);
+                Data::Soa(mname, rname, serial, refresh, retry, expire, minimum)
+            }
             Type::Ptr => Data::Ptr(get_name(raw, i)),
             Type::Mx => {
                 let preference = read_be_u16(&raw[i..i + 2]);
@@ -216,6 +229,10 @@ impl<'a> fmt::Display for Data<'a> {
             Data::A(addr) => write!(f, "{}", addr),
             Data::Ns(domain) => write!(f, "{}", domain),
             Data::Cname(domain) => write!(f, "{}", domain),
+            Data::Soa(mname, rname, serial, refresh, retry, expire, minimum) => write!(
+                f, "{{mname: {}, rname: {}, serial: {}, refresh: {}, retry: {}, expire: {}, minimum: {}}}",
+                mname, rname, serial, refresh, retry, expire, minimum
+            ),
             Data::Ptr(domain) => write!(f, "{}", domain),
             Data::Mx(preference, domain) => write!(f, "{{pref: {}, mx: {}}}", preference, domain),
             Data::Aaaa(addr) => write!(f, "{}", addr),
