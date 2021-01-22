@@ -987,14 +987,11 @@ fn main() {
                 }
 
                 // parse dns packet
-                let dns = match DnsPacket::parse(packet.payload()) {
-                    Ok(dns) => dns,
-                    Err(_) => {
-                        println!("malformed dns packet");
-                        continue;
-                    }
+                print!("got dns packet from {}: ", addr);
+                match DnsPacket::parse(packet.payload()) {
+                    Ok(dns) => println!("{}", dns),
+                    Err(_) => println!("malformed dns packet"),
                 };
-                println!("got dns packet from {}: {}", addr, dns);
             }
             Err(e) => {
                 panic!("An error occurred while reading: {}", e);
