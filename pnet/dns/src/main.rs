@@ -175,6 +175,7 @@ impl fmt::Display for Class {
 // Data:
 enum Data<'a> {
     A(std::net::Ipv4Addr),
+    Ns(String),
     Cname(String),
     Mx(u16, String),
     Aaaa(std::net::Ipv6Addr),
@@ -195,6 +196,7 @@ impl<'a> Data<'a> {
         // TODO: add error handling
         match typ {
             Type::A => Data::A(read_be_u32(&raw[i..i + 4]).into()),
+            Type::Ns => Data::Ns(get_name(raw, i)),
             Type::Cname => Data::Cname(get_name(raw, i)),
             Type::Mx => {
                 let preference = read_be_u16(&raw[i..i + 2]);
@@ -210,6 +212,7 @@ impl<'a> fmt::Display for Data<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Data::A(addr) => write!(f, "{}", addr),
+            Data::Ns(domain) => write!(f, "{}", domain),
             Data::Cname(domain) => write!(f, "{}", domain),
             Data::Mx(preference, domain) => write!(f, "{{pref: {}, mx: {}}}", preference, domain),
             Data::Aaaa(addr) => write!(f, "{}", addr),
