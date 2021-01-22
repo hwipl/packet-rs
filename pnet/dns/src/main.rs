@@ -950,6 +950,26 @@ fn get_name(raw: &[u8], offset: usize) -> String {
     get_name_from_labels(raw, &label_indexes)
 }
 
+// get dns character string from raw packet data
+// TODO: add error handling
+fn get_character_strings(raw: &[u8]) -> Vec<String> {
+    let mut strings = Vec::new();
+    let mut i = 0;
+
+    while i < raw.len() {
+        let length = usize::from(raw[i]);
+        if i + length > raw.len() {
+            break;
+        }
+        i += 1;
+        let chars = str::from_utf8(&raw[i..i + length]).unwrap();
+        strings.push(String::from(chars));
+        i += length;
+    }
+
+    return strings;
+}
+
 // convert a 16 bit field from big endian to native byte order
 fn read_be_u16(bytes: &[u8]) -> u16 {
     u16::from_be_bytes(bytes.try_into().expect("slice with incorrect length"))
