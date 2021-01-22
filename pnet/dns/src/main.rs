@@ -194,16 +194,10 @@ impl<'a> Data<'a> {
         // parse data based on its type
         match typ {
             Type::A => Data::A(read_be_u32(&raw[i..i + 4]).into()),
-            Type::Cname => {
-                let (label_indexes, _) = parse_labels(raw, offset).unwrap();
-                let domain = get_name_from_labels(raw, &label_indexes);
-                Data::Cname(domain)
-            }
+            Type::Cname => Data::Cname(get_name(raw, i)),
             Type::Mx => {
                 let preference = read_be_u16(&raw[i..i + 2]);
-                let (label_indexes, _) = parse_labels(raw, i + 2).unwrap();
-                let domain = get_name_from_labels(raw, &label_indexes);
-                Data::Mx(preference, domain)
+                Data::Mx(preference, get_name(raw, i + 2))
             }
             Type::Aaaa => Data::Aaaa(read_be_u128(&raw[i..i + 16]).into()),
             _ => Data::Unknown(&raw[i..i + length]),
@@ -924,6 +918,12 @@ fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> String {
         name += ".";
     }
     return name;
+}
+
+// get the name directly from labels in raw packet starting at offset
+fn get_name(raw: &[u8], offset: usize) -> String {
+    let (label_indexes, _) = parse_labels(raw, offset).unwrap();
+    get_name_from_labels(raw, &label_indexes)
 }
 
 // convert a 16 bit field from big endian to native byte order
