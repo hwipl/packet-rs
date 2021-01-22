@@ -177,6 +177,7 @@ enum Data<'a> {
     A(std::net::Ipv4Addr),
     Ns(String),
     Cname(String),
+    Ptr(String),
     Mx(u16, String),
     Aaaa(std::net::Ipv6Addr),
     Unknown(&'a [u8]),
@@ -198,6 +199,7 @@ impl<'a> Data<'a> {
             Type::A => Data::A(read_be_u32(&raw[i..i + 4]).into()),
             Type::Ns => Data::Ns(get_name(raw, i)),
             Type::Cname => Data::Cname(get_name(raw, i)),
+            Type::Ptr => Data::Ptr(get_name(raw, i)),
             Type::Mx => {
                 let preference = read_be_u16(&raw[i..i + 2]);
                 Data::Mx(preference, get_name(raw, i + 2))
@@ -214,6 +216,7 @@ impl<'a> fmt::Display for Data<'a> {
             Data::A(addr) => write!(f, "{}", addr),
             Data::Ns(domain) => write!(f, "{}", domain),
             Data::Cname(domain) => write!(f, "{}", domain),
+            Data::Ptr(domain) => write!(f, "{}", domain),
             Data::Mx(preference, domain) => write!(f, "{{pref: {}, mx: {}}}", preference, domain),
             Data::Aaaa(addr) => write!(f, "{}", addr),
             Data::Unknown(unknown) => write!(f, "unknown ({:?})", unknown),
