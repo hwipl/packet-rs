@@ -176,6 +176,7 @@ impl fmt::Display for Class {
 enum Data<'a> {
     A(std::net::Ipv4Addr),
     Cname(String),
+    Mx(u16, String),
     Aaaa(std::net::Ipv6Addr),
     Unknown(&'a [u8]),
 }
@@ -198,6 +199,12 @@ impl<'a> Data<'a> {
                 let domain = get_name_from_labels(raw, &label_indexes);
                 Data::Cname(domain)
             }
+            Type::Mx => {
+                let preference = read_be_u16(&raw[i..i + 2]);
+                let (label_indexes, _) = parse_labels(raw, i + 2).unwrap();
+                let domain = get_name_from_labels(raw, &label_indexes);
+                Data::Mx(preference, domain)
+            }
             Type::Aaaa => Data::Aaaa(read_be_u128(&raw[i..i + 16]).into()),
             _ => Data::Unknown(&raw[i..i + length]),
         }
@@ -209,6 +216,7 @@ impl<'a> fmt::Display for Data<'a> {
         match self {
             Data::A(addr) => write!(f, "{}", addr),
             Data::Cname(domain) => write!(f, "{}", domain),
+            Data::Mx(preference, domain) => write!(f, "{{pref: {}, mx: {}}}", preference, domain),
             Data::Aaaa(addr) => write!(f, "{}", addr),
             Data::Unknown(unknown) => write!(f, "unknown ({:?})", unknown),
         }
