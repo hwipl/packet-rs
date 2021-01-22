@@ -180,6 +180,7 @@ enum Data<'a> {
     Soa(String, String, u32, u32, u32, u32, u32),
     Ptr(String),
     Mx(u16, String),
+    Txt(Vec<String>),
     Aaaa(std::net::Ipv6Addr),
     Unknown(&'a [u8]),
 }
@@ -217,6 +218,7 @@ impl<'a> Data<'a> {
                 let preference = read_be_u16(&raw[i..i + 2]);
                 Data::Mx(preference, get_name(raw, i + 2))
             }
+            Type::Txt => Data::Txt(get_character_strings(&raw[i..i + length])),
             Type::Aaaa => Data::Aaaa(read_be_u128(&raw[i..i + 16]).into()),
             _ => Data::Unknown(&raw[i..i + length]),
         }
@@ -235,6 +237,7 @@ impl<'a> fmt::Display for Data<'a> {
             ),
             Data::Ptr(domain) => write!(f, "{}", domain),
             Data::Mx(preference, domain) => write!(f, "{{pref: {}, mx: {}}}", preference, domain),
+            Data::Txt(texts) => write!(f, "{:?}", texts),
             Data::Aaaa(addr) => write!(f, "{}", addr),
             Data::Unknown(unknown) => write!(f, "unknown ({:?})", unknown),
         }
