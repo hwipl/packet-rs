@@ -185,13 +185,14 @@ impl<'a> Data<'a> {
     fn parse(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Data {
         let i = offset;
 
-        // only handly class "internet" packets
+        // only handle class "internet" packets
         match class {
             Class::In => {}
             _ => return Data::Unknown(&raw[i..i + length]),
         }
 
         // parse data based on its type
+        // TODO: add error handling
         match typ {
             Type::A => Data::A(read_be_u32(&raw[i..i + 4]).into()),
             Type::Cname => Data::Cname(get_name(raw, i)),
