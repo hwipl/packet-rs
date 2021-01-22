@@ -125,6 +125,7 @@ impl fmt::Display for Type {
         }
     }
 }
+
 // Class/QClass:
 //
 // CLASS fields appear in resource records.  The following CLASS mnemonics
