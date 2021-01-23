@@ -234,7 +234,12 @@ impl<'a> Data<'a> {
                 Data::Mx(preference, get_name(raw, i + 2))
             }
             Type::Txt => Data::Txt(get_character_strings(&raw[i..i + length])),
-            Type::Aaaa => Data::Aaaa(read_be_u128(&raw[i..i + 16]).into()),
+            Type::Aaaa => {
+                if length != 16 {
+                    return Data::Invalid(&raw[i..i + length]);
+                }
+                Data::Aaaa(read_be_u128(&raw[i..i + 16]).into())
+            }
             _ => Data::Unknown(&raw[i..i + length]),
         }
     }
