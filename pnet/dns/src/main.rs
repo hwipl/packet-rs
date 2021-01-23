@@ -174,6 +174,7 @@ impl fmt::Display for Class {
 
 // Data:
 enum Data<'a> {
+    // implemented types
     A(std::net::Ipv4Addr),
     Ns(String),
     Cname(String),
@@ -182,12 +183,21 @@ enum Data<'a> {
     Mx(u16, String),
     Txt(Vec<String>),
     Aaaa(std::net::Ipv6Addr),
+
+    // non-existent types for:
+    // unknown/not implemented data type, invalid/erroneous data
     Unknown(&'a [u8]),
+    Invalid(&'a [u8]),
 }
 
 impl<'a> Data<'a> {
     fn parse(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Data {
         let i = offset;
+
+        // check offset and data length
+        if i + length > raw.len() {
+            return Data::Invalid(&raw[i..]);
+        }
 
         // only handle class "internet" packets
         match class {
@@ -240,6 +250,7 @@ impl<'a> fmt::Display for Data<'a> {
             Data::Txt(texts) => write!(f, "{:?}", texts),
             Data::Aaaa(addr) => write!(f, "{}", addr),
             Data::Unknown(unknown) => write!(f, "unknown ({:?})", unknown),
+            Data::Invalid(invalid) => write!(f, "invalid ({:?})", invalid),
         }
     }
 }
