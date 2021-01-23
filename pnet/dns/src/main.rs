@@ -208,7 +208,12 @@ impl<'a> Data<'a> {
         // parse data based on its type
         // TODO: add error handling
         match typ {
-            Type::A => Data::A(read_be_u32(&raw[i..i + 4]).into()),
+            Type::A => {
+                if length != 4 {
+                    return Data::Invalid(&raw[i..i + length]);
+                }
+                Data::A(read_be_u32(&raw[i..i + 4]).into())
+            }
             Type::Ns => Data::Ns(get_name(raw, i)),
             Type::Cname => Data::Cname(get_name(raw, i)),
             Type::Soa => {
