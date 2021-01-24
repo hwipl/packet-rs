@@ -225,8 +225,8 @@ impl<'a> Data<'a> {
             Type::Soa => {
                 let (mname_labels, i) = parse_labels(raw, i)?;
                 let (rname_labels, i) = parse_labels(raw, i)?;
-                let mname = get_name_from_labels(raw, &mname_labels);
-                let rname = get_name_from_labels(raw, &rname_labels);
+                let mname = get_name_from_labels(raw, &mname_labels)?;
+                let rname = get_name_from_labels(raw, &rname_labels)?;
                 let serial = read_be_u32(&raw[i..i + 4]);
                 let refresh = read_be_u32(&raw[i + 4..i + 8]);
                 let retry = read_be_u32(&raw[i + 8..i + 12]);
@@ -342,7 +342,7 @@ impl<'a> DnsRecord<'a> {
 
     // get the name from labels inside raw packet bytes
     fn get_name(&self) -> String {
-        get_name_from_labels(self.raw, &self.label_indexes)
+        get_name_from_labels(self.raw, &self.label_indexes).unwrap_or(String::from("<error>"))
     }
 
     // get the type field from raw packet bytes
@@ -962,7 +962,7 @@ fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize), ()> {
 }
 
 // get name from labels in raw packet
-fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> String {
+fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<String, ()> {
     let mut name = String::new();
     for i in label_indexes {
         // get length of current label from first byte
@@ -972,21 +972,18 @@ fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> String {
         let j = i + 1;
         let part = match str::from_utf8(&raw[j..j + length]) {
             Ok(part) => part,
-            Err(err) => {
-                println!("{}", err);
-                "<error>"
-            }
+            Err(_) => return Err(()),
         };
         name.push_str(part);
         name += ".";
     }
-    return name;
+    return Ok(name);
 }
 
 // get the name directly from labels in raw packet starting at offset
 fn get_name(raw: &[u8], offset: usize) -> Result<String, ()> {
     let (label_indexes, _) = parse_labels(raw, offset)?;
-    Ok(get_name_from_labels(raw, &label_indexes))
+    get_name_from_labels(raw, &label_indexes)
 }
 
 // get dns character string from raw packet data
