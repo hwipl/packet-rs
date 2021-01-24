@@ -241,7 +241,7 @@ impl<'a> Data<'a> {
                 let preference = read_be_u16(&raw[i..i + 2]);
                 Ok(Data::Mx(preference, get_name(raw, i + 2)))
             }
-            Type::Txt => Ok(Data::Txt(get_character_strings(&raw[i..i + length]))),
+            Type::Txt => Ok(Data::Txt(get_character_strings(&raw[i..i + length])?)),
             Type::Aaaa => {
                 if length != 16 {
                     return Err(());
@@ -990,23 +990,30 @@ fn get_name(raw: &[u8], offset: usize) -> String {
 }
 
 // get dns character string from raw packet data
-// TODO: add error handling
-fn get_character_strings(raw: &[u8]) -> Vec<String> {
+fn get_character_strings(raw: &[u8]) -> Result<Vec<String>, ()> {
     let mut strings = Vec::new();
     let mut i = 0;
 
     while i < raw.len() {
+        // check length
         let length = usize::from(raw[i]);
         if i + length > raw.len() {
-            break;
+            return Err(());
         }
         i += 1;
-        let chars = str::from_utf8(&raw[i..i + length]).unwrap();
+
+        // try to read character string
+        let chars = match str::from_utf8(&raw[i..i + length]) {
+            Ok(chars) => chars,
+            Err(_) => return Err(()),
+        };
+
+        // add string
         strings.push(String::from(chars));
         i += length;
     }
 
-    return strings;
+    return Ok(strings);
 }
 
 // convert a 16 bit field from big endian to native byte order
