@@ -220,8 +220,8 @@ impl<'a> Data<'a> {
                 }
                 Ok(Data::A(read_be_u32(&raw[i..i + 4]).into()))
             }
-            Type::Ns => Ok(Data::Ns(get_name(raw, i))),
-            Type::Cname => Ok(Data::Cname(get_name(raw, i))),
+            Type::Ns => Ok(Data::Ns(get_name(raw, i)?)),
+            Type::Cname => Ok(Data::Cname(get_name(raw, i)?)),
             Type::Soa => {
                 let (mname_labels, i) = parse_labels(raw, i)?;
                 let (rname_labels, i) = parse_labels(raw, i)?;
@@ -236,10 +236,10 @@ impl<'a> Data<'a> {
                     mname, rname, serial, refresh, retry, expire, minimum,
                 ))
             }
-            Type::Ptr => Ok(Data::Ptr(get_name(raw, i))),
+            Type::Ptr => Ok(Data::Ptr(get_name(raw, i)?)),
             Type::Mx => {
                 let preference = read_be_u16(&raw[i..i + 2]);
-                Ok(Data::Mx(preference, get_name(raw, i + 2)))
+                Ok(Data::Mx(preference, get_name(raw, i + 2)?))
             }
             Type::Txt => Ok(Data::Txt(get_character_strings(&raw[i..i + length])?)),
             Type::Aaaa => {
@@ -984,9 +984,9 @@ fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> String {
 }
 
 // get the name directly from labels in raw packet starting at offset
-fn get_name(raw: &[u8], offset: usize) -> String {
-    let (label_indexes, _) = parse_labels(raw, offset).unwrap();
-    get_name_from_labels(raw, &label_indexes)
+fn get_name(raw: &[u8], offset: usize) -> Result<String, ()> {
+    let (label_indexes, _) = parse_labels(raw, offset)?;
+    Ok(get_name_from_labels(raw, &label_indexes))
 }
 
 // get dns character string from raw packet data
