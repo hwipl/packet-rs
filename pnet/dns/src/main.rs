@@ -191,18 +191,24 @@ enum Data<'a> {
 }
 
 impl<'a> Data<'a> {
-    fn parse(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Data {
+    fn parse(
+        raw: &[u8],
+        offset: usize,
+        length: usize,
+        typ: Type,
+        class: Class,
+    ) -> Result<Data, ()> {
         let i = offset;
 
         // check offset and data length
         if i + length > raw.len() {
-            return Data::Invalid(&raw[i..]);
+            return Err(());
         }
 
         // only handle class "internet" packets
         match class {
             Class::In => {}
-            _ => return Data::Unknown(&raw[i..i + length]),
+            _ => return Ok(Data::Unknown(&raw[i..i + length])),
         }
 
         // parse data based on its type
@@ -210,15 +216,15 @@ impl<'a> Data<'a> {
         match typ {
             Type::A => {
                 if length != 4 {
-                    return Data::Invalid(&raw[i..i + length]);
+                    return Err(());
                 }
-                Data::A(read_be_u32(&raw[i..i + 4]).into())
+                Ok(Data::A(read_be_u32(&raw[i..i + 4]).into()))
             }
-            Type::Ns => Data::Ns(get_name(raw, i)),
-            Type::Cname => Data::Cname(get_name(raw, i)),
+            Type::Ns => Ok(Data::Ns(get_name(raw, i))),
+            Type::Cname => Ok(Data::Cname(get_name(raw, i))),
             Type::Soa => {
-                let (mname_labels, i) = parse_labels(raw, i).unwrap();
-                let (rname_labels, i) = parse_labels(raw, i).unwrap();
+                let (mname_labels, i) = parse_labels(raw, i)?;
+                let (rname_labels, i) = parse_labels(raw, i)?;
                 let mname = get_name_from_labels(raw, &mname_labels);
                 let rname = get_name_from_labels(raw, &rname_labels);
                 let serial = read_be_u32(&raw[i..i + 4]);
@@ -226,21 +232,30 @@ impl<'a> Data<'a> {
                 let retry = read_be_u32(&raw[i + 8..i + 12]);
                 let expire = read_be_u32(&raw[i + 12..i + 16]);
                 let minimum = read_be_u32(&raw[i + 16..i + 20]);
-                Data::Soa(mname, rname, serial, refresh, retry, expire, minimum)
+                Ok(Data::Soa(
+                    mname, rname, serial, refresh, retry, expire, minimum,
+                ))
             }
-            Type::Ptr => Data::Ptr(get_name(raw, i)),
+            Type::Ptr => Ok(Data::Ptr(get_name(raw, i))),
             Type::Mx => {
                 let preference = read_be_u16(&raw[i..i + 2]);
-                Data::Mx(preference, get_name(raw, i + 2))
+                Ok(Data::Mx(preference, get_name(raw, i + 2)))
             }
-            Type::Txt => Data::Txt(get_character_strings(&raw[i..i + length])),
+            Type::Txt => Ok(Data::Txt(get_character_strings(&raw[i..i + length]))),
             Type::Aaaa => {
                 if length != 16 {
-                    return Data::Invalid(&raw[i..i + length]);
+                    return Err(());
                 }
-                Data::Aaaa(read_be_u128(&raw[i..i + 16]).into())
+                Ok(Data::Aaaa(read_be_u128(&raw[i..i + 16]).into()))
             }
-            _ => Data::Unknown(&raw[i..i + length]),
+            _ => Ok(Data::Unknown(&raw[i..i + length])),
+        }
+    }
+
+    fn get(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Data {
+        match Data::parse(raw, offset, length, typ, class) {
+            Ok(data) => data,
+            Err(_) => Data::Invalid(&raw[offset..offset + std::cmp::min(length, raw.len())]),
         }
     }
 }
@@ -360,7 +375,7 @@ impl<'a> DnsRecord<'a> {
     // note: do not use in dns question
     fn get_data(&self) -> Data {
         let i = self.next_index + 10;
-        Data::parse(
+        Data::get(
             self.raw,
             i,
             usize::from(self.get_data_length()),
