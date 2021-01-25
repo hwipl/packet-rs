@@ -242,6 +242,10 @@ impl<'a> Data<'a> {
             }
             Type::Ptr => Ok(Data::Ptr(get_name(raw, i)?)),
             Type::Mx => {
+                // check minimum mx data length: 1*u16 + 1*label
+                if length < 3 {
+                    return Err(());
+                }
                 let preference = read_be_u16(&raw[i..i + 2]);
                 Ok(Data::Mx(preference, get_name(raw, i + 2)?))
             }
