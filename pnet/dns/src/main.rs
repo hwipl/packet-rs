@@ -223,6 +223,10 @@ impl<'a> Data<'a> {
             Type::Ns => Ok(Data::Ns(get_name(raw, i)?)),
             Type::Cname => Ok(Data::Cname(get_name(raw, i)?)),
             Type::Soa => {
+                // check minimum soa data length: 2*label + 5*u32
+                if length < 22 {
+                    return Err(());
+                }
                 let (mname_labels, i) = parse_labels(raw, i)?;
                 let (rname_labels, i) = parse_labels(raw, i)?;
                 let mname = get_name_from_labels(raw, &mname_labels)?;
