@@ -19,7 +19,6 @@ type Result<T> = std::result::Result<T, DnsError>;
 // dns error types
 #[derive(Debug)]
 enum DnsError {
-    Invalid,
     DataLength,
     RecordLength,
     PacketLength,
@@ -33,7 +32,6 @@ enum DnsError {
 impl fmt::Display for DnsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DnsError::Invalid => write!(f, "invalid DNS packet"),
             DnsError::DataLength => write!(f, "invalid length of data field in record"),
             DnsError::RecordLength => write!(f, "invalid length of record"),
             DnsError::PacketLength => write!(f, "invalid length of packet"),
