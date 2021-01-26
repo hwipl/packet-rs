@@ -23,6 +23,7 @@ enum DnsError {
     DataLength,
     RecordLength,
     PacketLength,
+    CharactersLength,
 }
 
 impl fmt::Display for DnsError {
@@ -32,6 +33,7 @@ impl fmt::Display for DnsError {
             DnsError::DataLength => write!(f, "invalid length of data field in record"),
             DnsError::RecordLength => write!(f, "invalid length of record"),
             DnsError::PacketLength => write!(f, "invalid length of packet"),
+            DnsError::CharactersLength => write!(f, "invalid length of character string"),
         }
     }
 }
@@ -1017,7 +1019,7 @@ fn get_character_strings(raw: &[u8]) -> Result<Vec<String>> {
         // check length
         let length = usize::from(raw[i]);
         if i + length > raw.len() {
-            return Err(DnsError::Invalid);
+            return Err(DnsError::CharactersLength);
         }
         i += 1;
 
