@@ -24,6 +24,7 @@ enum DnsError {
     RecordLength,
     PacketLength,
     CharactersLength,
+    CharactersUtf8(str::Utf8Error),
 }
 
 impl fmt::Display for DnsError {
@@ -34,6 +35,7 @@ impl fmt::Display for DnsError {
             DnsError::RecordLength => write!(f, "invalid length of record"),
             DnsError::PacketLength => write!(f, "invalid length of packet"),
             DnsError::CharactersLength => write!(f, "invalid length of character string"),
+            DnsError::CharactersUtf8(_) => write!(f, "invalid utf8 in character string"),
         }
     }
 }
@@ -1024,10 +1026,7 @@ fn get_character_strings(raw: &[u8]) -> Result<Vec<String>> {
         i += 1;
 
         // try to read character string
-        let chars = match str::from_utf8(&raw[i..i + length]) {
-            Ok(chars) => chars,
-            Err(_) => return Err(DnsError::Invalid),
-        };
+        let chars = str::from_utf8(&raw[i..i + length]).map_err(|e| DnsError::CharactersUtf8(e))?;
 
         // add string
         strings.push(String::from(chars));
