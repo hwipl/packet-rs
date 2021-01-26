@@ -26,6 +26,7 @@ enum DnsError {
     CharactersLength,
     CharactersUtf8(str::Utf8Error),
     LabelLength,
+    LabelReference,
 }
 
 impl fmt::Display for DnsError {
@@ -38,6 +39,7 @@ impl fmt::Display for DnsError {
             DnsError::CharactersLength => write!(f, "invalid length of character string"),
             DnsError::CharactersUtf8(_) => write!(f, "invalid utf8 in character string"),
             DnsError::LabelLength => write!(f, "invalid length of label"),
+            DnsError::LabelReference => write!(f, "invalid reference in label"),
         }
     }
 }
@@ -971,7 +973,7 @@ fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize)> {
 
             // reference must point to previous label
             if new_i >= i {
-                return Err(DnsError::Invalid);
+                return Err(DnsError::LabelReference);
             }
             i = new_i;
 
