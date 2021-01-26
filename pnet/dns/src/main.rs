@@ -1077,7 +1077,7 @@ fn main() {
                 print!("got dns packet from {}: ", addr);
                 match DnsPacket::parse(packet.payload()) {
                     Ok(dns) => println!("{}", dns),
-                    Err(_) => println!("malformed dns packet"),
+                    Err(e) => println!("malformed dns packet: {}", e),
                 };
             }
             Err(e) => {
