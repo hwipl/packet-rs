@@ -21,6 +21,7 @@ type Result<T> = std::result::Result<T, DnsError>;
 enum DnsError {
     Invalid,
     DataLength,
+    RecordLength,
 }
 
 impl fmt::Display for DnsError {
@@ -28,6 +29,7 @@ impl fmt::Display for DnsError {
         match self {
             DnsError::Invalid => write!(f, "invalid DNS packet"),
             DnsError::DataLength => write!(f, "invalid length of data field in record"),
+            DnsError::RecordLength => write!(f, "invalid length of record"),
         }
     }
 }
@@ -340,8 +342,7 @@ impl<'a> DnsRecord<'a> {
     fn parse(raw: &'a [u8], offset: usize) -> Result<DnsRecord<'a>> {
         // check offset and minimum size
         if offset > raw.len() || raw.len() - offset < DNS_MIN_QUESTION_LENGTH {
-            println!("short dns answer with length {}", raw.len());
-            return Err(DnsError::Invalid);
+            return Err(DnsError::RecordLength);
         }
 
         // parse labels in packet
@@ -486,8 +487,7 @@ impl<'a> DnsAnswer<'a> {
     // TODO: add error handling
     pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsAnswer<'a>> {
         if raw.len() - offset < DNS_MIN_ANSWER_LENGTH {
-            println!("short dns answer with length {}", raw.len());
-            return Err(DnsError::Invalid);
+            return Err(DnsError::RecordLength);
         }
 
         Ok(DnsAnswer {
