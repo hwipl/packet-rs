@@ -25,6 +25,7 @@ enum DnsError {
     PacketLength,
     CharactersLength,
     CharactersUtf8(str::Utf8Error),
+    LabelLength,
 }
 
 impl fmt::Display for DnsError {
@@ -36,6 +37,7 @@ impl fmt::Display for DnsError {
             DnsError::PacketLength => write!(f, "invalid length of packet"),
             DnsError::CharactersLength => write!(f, "invalid length of character string"),
             DnsError::CharactersUtf8(_) => write!(f, "invalid utf8 in character string"),
+            DnsError::LabelLength => write!(f, "invalid length of label"),
         }
     }
 }
@@ -933,7 +935,7 @@ fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize)> {
     let mut next_index = 0;
     loop {
         if i >= raw.len() {
-            return Err(DnsError::Invalid);
+            return Err(DnsError::LabelLength);
         }
         // get length of current label from first byte
         let length: usize = usize::from(raw[i]);
