@@ -27,6 +27,7 @@ enum DnsError {
     CharactersUtf8(str::Utf8Error),
     LabelLength,
     LabelReference,
+    LabelUtf8(str::Utf8Error),
 }
 
 impl fmt::Display for DnsError {
@@ -40,6 +41,7 @@ impl fmt::Display for DnsError {
             DnsError::CharactersUtf8(_) => write!(f, "invalid utf8 in character string"),
             DnsError::LabelLength => write!(f, "invalid length of label"),
             DnsError::LabelReference => write!(f, "invalid reference in label"),
+            DnsError::LabelUtf8(_) => write!(f, "invalid utf8 in label"),
         }
     }
 }
@@ -1000,10 +1002,7 @@ fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<String
 
         // read domain name part from current label
         let j = i + 1;
-        let part = match str::from_utf8(&raw[j..j + length]) {
-            Ok(part) => part,
-            Err(_) => return Err(DnsError::Invalid),
-        };
+        let part = str::from_utf8(&raw[j..j + length]).map_err(|e| DnsError::LabelUtf8(e))?;
         name.push_str(part);
         name += ".";
     }
