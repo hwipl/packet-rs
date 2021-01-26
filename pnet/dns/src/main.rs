@@ -13,6 +13,10 @@ const DNS_MIN_ANSWER_LENGTH: usize = 11;
 const DNS_MIN_QUESTION_LENGTH: usize = 5;
 const DNS_PORT: u16 = 53;
 
+// use dns error types in result
+type Result<T> = std::result::Result<T, DnsError>;
+
+// dns error types
 #[derive(Debug)]
 enum DnsError {
     Invalid,
@@ -204,13 +208,7 @@ enum Data<'a> {
 }
 
 impl<'a> Data<'a> {
-    fn parse(
-        raw: &[u8],
-        offset: usize,
-        length: usize,
-        typ: Type,
-        class: Class,
-    ) -> Result<Data, DnsError> {
+    fn parse(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Result<Data> {
         let i = offset;
 
         // check offset and data length
@@ -337,7 +335,7 @@ impl<'a> DnsRecord<'a> {
     // * find first index of next fields in packet:
     //   type, class, ttl, data length, data.
     // TODO: add error handling
-    fn parse(raw: &'a [u8], offset: usize) -> Result<DnsRecord<'a>, DnsError> {
+    fn parse(raw: &'a [u8], offset: usize) -> Result<DnsRecord<'a>> {
         // check offset and minimum size
         if offset > raw.len() || raw.len() - offset < DNS_MIN_QUESTION_LENGTH {
             println!("short dns answer with length {}", raw.len());
@@ -420,7 +418,7 @@ struct DnsQuestion<'a> {
 impl<'a> DnsQuestion<'a> {
     // create a new dns question from raw packet bytes,
     // parse the question packet:
-    pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsQuestion<'a>, DnsError> {
+    pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsQuestion<'a>> {
         // create and return question
         Ok(DnsQuestion {
             record: DnsRecord::parse(raw, offset)?,
@@ -484,7 +482,7 @@ impl<'a> DnsAnswer<'a> {
     // find index of data length field,
     // find index of data field.
     // TODO: add error handling
-    pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsAnswer<'a>, DnsError> {
+    pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsAnswer<'a>> {
         if raw.len() - offset < DNS_MIN_ANSWER_LENGTH {
             println!("short dns answer with length {}", raw.len());
             return Err(DnsError::Invalid);
@@ -710,7 +708,7 @@ struct DnsPacket<'a> {
 
 impl<'a> DnsPacket<'a> {
     // create a new dns packet from raw packet bytes
-    pub fn parse(raw: &'a [u8]) -> Result<DnsPacket<'a>, DnsError> {
+    pub fn parse(raw: &'a [u8]) -> Result<DnsPacket<'a>> {
         if raw.len() < DNS_HEADER_LENGTH {
             println!("short dns packet with length {}", raw.len());
             return Err(DnsError::Invalid);
@@ -731,7 +729,7 @@ impl<'a> DnsPacket<'a> {
     // parse dns records in the dns packet:
     // find questions, answers, authorities, additionals
     // TODO: improve error handling
-    fn parse_records(&mut self) -> Result<(), DnsError> {
+    fn parse_records(&mut self) -> Result<()> {
         // parse questions
         let mut offset = DNS_HEADER_LENGTH;
         for _ in 0..self.get_questions() {
@@ -921,7 +919,7 @@ impl<'a> fmt::Display for DnsPacket<'a> {
 // parse labels inside raw packet data starting at offset,
 // return list of label indexes and the index of the next message field
 // after the labels
-fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize), DnsError> {
+fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize)> {
     let mut i = offset;
     let mut is_reference = false;
     let mut label_indexes = Vec::new();
@@ -983,7 +981,7 @@ fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize), DnsErr
 }
 
 // get name from labels in raw packet
-fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<String, DnsError> {
+fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<String> {
     let mut name = String::new();
     for i in label_indexes {
         // get length of current label from first byte
@@ -1002,13 +1000,13 @@ fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<String
 }
 
 // get the name directly from labels in raw packet starting at offset
-fn get_name(raw: &[u8], offset: usize) -> Result<String, DnsError> {
+fn get_name(raw: &[u8], offset: usize) -> Result<String> {
     let (label_indexes, _) = parse_labels(raw, offset)?;
     get_name_from_labels(raw, &label_indexes)
 }
 
 // get dns character string from raw packet data
-fn get_character_strings(raw: &[u8]) -> Result<Vec<String>, DnsError> {
+fn get_character_strings(raw: &[u8]) -> Result<Vec<String>> {
     let mut strings = Vec::new();
     let mut i = 0;
 
