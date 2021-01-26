@@ -22,6 +22,7 @@ enum DnsError {
     Invalid,
     DataLength,
     RecordLength,
+    PacketLength,
 }
 
 impl fmt::Display for DnsError {
@@ -30,6 +31,7 @@ impl fmt::Display for DnsError {
             DnsError::Invalid => write!(f, "invalid DNS packet"),
             DnsError::DataLength => write!(f, "invalid length of data field in record"),
             DnsError::RecordLength => write!(f, "invalid length of record"),
+            DnsError::PacketLength => write!(f, "invalid length of packet"),
         }
     }
 }
@@ -712,8 +714,7 @@ impl<'a> DnsPacket<'a> {
     // create a new dns packet from raw packet bytes
     pub fn parse(raw: &'a [u8]) -> Result<DnsPacket<'a>> {
         if raw.len() < DNS_HEADER_LENGTH {
-            println!("short dns packet with length {}", raw.len());
-            return Err(DnsError::Invalid);
+            return Err(DnsError::PacketLength);
         }
 
         let mut packet = DnsPacket {
