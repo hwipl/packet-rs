@@ -13,6 +13,19 @@ const DNS_MIN_ANSWER_LENGTH: usize = 11;
 const DNS_MIN_QUESTION_LENGTH: usize = 5;
 const DNS_PORT: u16 = 53;
 
+#[derive(Debug)]
+enum DnsError {
+    Invalid,
+}
+
+impl fmt::Display for DnsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DnsError::Invalid => write!(f, "invalid DNS packet"),
+        }
+    }
+}
+
 // Type/QType
 // TYPE fields are used in resource records.  Note that these types are a
 // subset of QTYPEs.
@@ -197,12 +210,12 @@ impl<'a> Data<'a> {
         length: usize,
         typ: Type,
         class: Class,
-    ) -> Result<Data, ()> {
+    ) -> Result<Data, DnsError> {
         let i = offset;
 
         // check offset and data length
         if i + length > raw.len() {
-            return Err(());
+            return Err(DnsError::Invalid);
         }
 
         // only handle class "internet" packets
@@ -216,7 +229,7 @@ impl<'a> Data<'a> {
         match typ {
             Type::A => {
                 if length != 4 {
-                    return Err(());
+                    return Err(DnsError::Invalid);
                 }
                 Ok(Data::A(read_be_u32(&raw[i..i + 4]).into()))
             }
@@ -225,7 +238,7 @@ impl<'a> Data<'a> {
             Type::Soa => {
                 // check minimum soa data length: 2*label + 5*u32
                 if length < 22 {
-                    return Err(());
+                    return Err(DnsError::Invalid);
                 }
                 let (mname_labels, i) = parse_labels(raw, i)?;
                 let (rname_labels, i) = parse_labels(raw, i)?;
@@ -244,7 +257,7 @@ impl<'a> Data<'a> {
             Type::Mx => {
                 // check minimum mx data length: 1*u16 + 1*label
                 if length < 3 {
-                    return Err(());
+                    return Err(DnsError::Invalid);
                 }
                 let preference = read_be_u16(&raw[i..i + 2]);
                 Ok(Data::Mx(preference, get_name(raw, i + 2)?))
@@ -252,7 +265,7 @@ impl<'a> Data<'a> {
             Type::Txt => Ok(Data::Txt(get_character_strings(&raw[i..i + length])?)),
             Type::Aaaa => {
                 if length != 16 {
-                    return Err(());
+                    return Err(DnsError::Invalid);
                 }
                 Ok(Data::Aaaa(read_be_u128(&raw[i..i + 16]).into()))
             }
@@ -324,11 +337,11 @@ impl<'a> DnsRecord<'a> {
     // * find first index of next fields in packet:
     //   type, class, ttl, data length, data.
     // TODO: add error handling
-    fn parse(raw: &'a [u8], offset: usize) -> Result<DnsRecord<'a>, ()> {
+    fn parse(raw: &'a [u8], offset: usize) -> Result<DnsRecord<'a>, DnsError> {
         // check offset and minimum size
         if offset > raw.len() || raw.len() - offset < DNS_MIN_QUESTION_LENGTH {
             println!("short dns answer with length {}", raw.len());
-            return Err(());
+            return Err(DnsError::Invalid);
         }
 
         // parse labels in packet
@@ -407,7 +420,7 @@ struct DnsQuestion<'a> {
 impl<'a> DnsQuestion<'a> {
     // create a new dns question from raw packet bytes,
     // parse the question packet:
-    pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsQuestion<'a>, ()> {
+    pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsQuestion<'a>, DnsError> {
         // create and return question
         Ok(DnsQuestion {
             record: DnsRecord::parse(raw, offset)?,
@@ -471,10 +484,10 @@ impl<'a> DnsAnswer<'a> {
     // find index of data length field,
     // find index of data field.
     // TODO: add error handling
-    pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsAnswer<'a>, ()> {
+    pub fn parse(raw: &'a [u8], offset: usize) -> Result<DnsAnswer<'a>, DnsError> {
         if raw.len() - offset < DNS_MIN_ANSWER_LENGTH {
             println!("short dns answer with length {}", raw.len());
-            return Err(());
+            return Err(DnsError::Invalid);
         }
 
         Ok(DnsAnswer {
@@ -697,10 +710,10 @@ struct DnsPacket<'a> {
 
 impl<'a> DnsPacket<'a> {
     // create a new dns packet from raw packet bytes
-    pub fn parse(raw: &'a [u8]) -> Result<DnsPacket<'a>, ()> {
+    pub fn parse(raw: &'a [u8]) -> Result<DnsPacket<'a>, DnsError> {
         if raw.len() < DNS_HEADER_LENGTH {
             println!("short dns packet with length {}", raw.len());
-            return Err(());
+            return Err(DnsError::Invalid);
         }
 
         let mut packet = DnsPacket {
@@ -718,7 +731,7 @@ impl<'a> DnsPacket<'a> {
     // parse dns records in the dns packet:
     // find questions, answers, authorities, additionals
     // TODO: improve error handling
-    fn parse_records(&mut self) -> Result<(), ()> {
+    fn parse_records(&mut self) -> Result<(), DnsError> {
         // parse questions
         let mut offset = DNS_HEADER_LENGTH;
         for _ in 0..self.get_questions() {
@@ -908,14 +921,14 @@ impl<'a> fmt::Display for DnsPacket<'a> {
 // parse labels inside raw packet data starting at offset,
 // return list of label indexes and the index of the next message field
 // after the labels
-fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize), ()> {
+fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize), DnsError> {
     let mut i = offset;
     let mut is_reference = false;
     let mut label_indexes = Vec::new();
     let mut next_index = 0;
     loop {
         if i >= raw.len() {
-            return Err(());
+            return Err(DnsError::Invalid);
         }
         // get length of current label from first byte
         let length: usize = usize::from(raw[i]);
@@ -951,7 +964,7 @@ fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize), ()> {
 
             // reference must point to previous label
             if new_i >= i {
-                return Err(());
+                return Err(DnsError::Invalid);
             }
             i = new_i;
 
@@ -970,7 +983,7 @@ fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize), ()> {
 }
 
 // get name from labels in raw packet
-fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<String, ()> {
+fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<String, DnsError> {
     let mut name = String::new();
     for i in label_indexes {
         // get length of current label from first byte
@@ -980,7 +993,7 @@ fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<String
         let j = i + 1;
         let part = match str::from_utf8(&raw[j..j + length]) {
             Ok(part) => part,
-            Err(_) => return Err(()),
+            Err(_) => return Err(DnsError::Invalid),
         };
         name.push_str(part);
         name += ".";
@@ -989,13 +1002,13 @@ fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<String
 }
 
 // get the name directly from labels in raw packet starting at offset
-fn get_name(raw: &[u8], offset: usize) -> Result<String, ()> {
+fn get_name(raw: &[u8], offset: usize) -> Result<String, DnsError> {
     let (label_indexes, _) = parse_labels(raw, offset)?;
     get_name_from_labels(raw, &label_indexes)
 }
 
 // get dns character string from raw packet data
-fn get_character_strings(raw: &[u8]) -> Result<Vec<String>, ()> {
+fn get_character_strings(raw: &[u8]) -> Result<Vec<String>, DnsError> {
     let mut strings = Vec::new();
     let mut i = 0;
 
@@ -1003,14 +1016,14 @@ fn get_character_strings(raw: &[u8]) -> Result<Vec<String>, ()> {
         // check length
         let length = usize::from(raw[i]);
         if i + length > raw.len() {
-            return Err(());
+            return Err(DnsError::Invalid);
         }
         i += 1;
 
         // try to read character string
         let chars = match str::from_utf8(&raw[i..i + length]) {
             Ok(chars) => chars,
-            Err(_) => return Err(()),
+            Err(_) => return Err(DnsError::Invalid),
         };
 
         // add string
