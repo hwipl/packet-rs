@@ -20,12 +20,14 @@ type Result<T> = std::result::Result<T, DnsError>;
 #[derive(Debug)]
 enum DnsError {
     Invalid,
+    DataLength,
 }
 
 impl fmt::Display for DnsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DnsError::Invalid => write!(f, "invalid DNS packet"),
+            DnsError::DataLength => write!(f, "invalid length of data field in record"),
         }
     }
 }
@@ -213,7 +215,7 @@ impl<'a> Data<'a> {
 
         // check offset and data length
         if i + length > raw.len() {
-            return Err(DnsError::Invalid);
+            return Err(DnsError::DataLength);
         }
 
         // only handle class "internet" packets
@@ -227,7 +229,7 @@ impl<'a> Data<'a> {
         match typ {
             Type::A => {
                 if length != 4 {
-                    return Err(DnsError::Invalid);
+                    return Err(DnsError::DataLength);
                 }
                 Ok(Data::A(read_be_u32(&raw[i..i + 4]).into()))
             }
@@ -236,7 +238,7 @@ impl<'a> Data<'a> {
             Type::Soa => {
                 // check minimum soa data length: 2*label + 5*u32
                 if length < 22 {
-                    return Err(DnsError::Invalid);
+                    return Err(DnsError::DataLength);
                 }
                 let (mname_labels, i) = parse_labels(raw, i)?;
                 let (rname_labels, i) = parse_labels(raw, i)?;
@@ -255,7 +257,7 @@ impl<'a> Data<'a> {
             Type::Mx => {
                 // check minimum mx data length: 1*u16 + 1*label
                 if length < 3 {
-                    return Err(DnsError::Invalid);
+                    return Err(DnsError::DataLength);
                 }
                 let preference = read_be_u16(&raw[i..i + 2]);
                 Ok(Data::Mx(preference, get_name(raw, i + 2)?))
@@ -263,7 +265,7 @@ impl<'a> Data<'a> {
             Type::Txt => Ok(Data::Txt(get_character_strings(&raw[i..i + length])?)),
             Type::Aaaa => {
                 if length != 16 {
-                    return Err(DnsError::Invalid);
+                    return Err(DnsError::DataLength);
                 }
                 Ok(Data::Aaaa(read_be_u128(&raw[i..i + 16]).into()))
             }
