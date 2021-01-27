@@ -1076,7 +1076,7 @@ fn listen_udp() {
                 }
 
                 // parse dns packet
-                print!("got dns packet from {}: ", addr);
+                print!("got udp dns packet from {}: ", addr);
                 match DnsPacket::parse(packet.payload()) {
                     Ok(dns) => println!("{}", dns),
                     Err(e) => println!("malformed dns packet: {}", e),
@@ -1147,5 +1147,7 @@ fn listen_tcp() {
 
 fn main() {
     let udp = std::thread::spawn(|| listen_udp());
+    let tcp = std::thread::spawn(|| listen_tcp());
     let _ = udp.join();
+    let _ = tcp.join();
 }
