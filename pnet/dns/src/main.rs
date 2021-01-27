@@ -1052,7 +1052,8 @@ fn read_be_u128(bytes: &[u8]) -> u128 {
     u128::from_be_bytes(bytes.try_into().expect("slice with incorrect length"))
 }
 
-fn main() {
+// run udp listener and handle dns packets
+fn listen_udp() {
     // create an udp channel
     let protocol = Layer4(Ipv4(IpNextHeaderProtocols::Udp));
     let (_, mut rx) = match transport_channel(4096, protocol) {
@@ -1085,4 +1086,9 @@ fn main() {
             }
         }
     }
+}
+
+fn main() {
+    let udp = std::thread::spawn(|| listen_udp());
+    let _ = udp.join();
 }
