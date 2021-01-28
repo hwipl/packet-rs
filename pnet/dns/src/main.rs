@@ -93,6 +93,7 @@ enum Type {
     Mx,
     Txt,
     Aaaa,
+    Srv,
     Axfr,
     Mailb,
     Maila,
@@ -120,6 +121,7 @@ impl From<u16> for Type {
             15 => Type::Mx,
             16 => Type::Txt,
             28 => Type::Aaaa,
+            33 => Type::Srv,
             252 => Type::Axfr,
             253 => Type::Mailb,
             254 => Type::Maila,
@@ -149,6 +151,7 @@ impl fmt::Display for Type {
             Type::Mx => write!(f, "15 (mx)"),
             Type::Txt => write!(f, "16 (txt)"),
             Type::Aaaa => write!(f, "28 (aaaa)"),
+            Type::Srv => write!(f, "33 (srv)"),
             Type::Axfr => write!(f, "252 (axfr)"),
             Type::Mailb => write!(f, "253 (mailb)"),
             Type::Maila => write!(f, "254 (maila)"),
@@ -215,6 +218,7 @@ enum Data<'a> {
     Mx(u16, String),
     Txt(Vec<String>),
     Aaaa(std::net::Ipv6Addr),
+    Srv(u16, u16, u16, String),
 
     // non-existent types for:
     // unknown/not implemented data type, invalid/erroneous data
@@ -282,6 +286,17 @@ impl<'a> Data<'a> {
                 }
                 Ok(Data::Aaaa(read_be_u128(&raw[i..i + 16]).into()))
             }
+            Type::Srv => {
+                // check minimum srv data length: 3*u16 + 1*label
+                if length < 7 {
+                    return Err(DnsError::DataLength);
+                }
+                let priority = read_be_u16(&raw[i..i + 2]);
+                let weight = read_be_u16(&raw[i + 2..i + 4]);
+                let port = read_be_u16(&raw[i + 4..i + 6]);
+                let target = get_name(raw, i + 6)?;
+                Ok(Data::Srv(priority, weight, port, target))
+            }
             _ => Ok(Data::Unknown(&raw[i..i + length])),
         }
     }
@@ -308,6 +323,8 @@ impl<'a> fmt::Display for Data<'a> {
             Data::Mx(preference, domain) => write!(f, "{{pref: {}, mx: {}}}", preference, domain),
             Data::Txt(texts) => write!(f, "{:?}", texts),
             Data::Aaaa(addr) => write!(f, "{}", addr),
+            Data::Srv(priority, weight, port, target) => write!(f,
+                "{{priority: {}, weight: {}, port: {}, target: {}}}", priority, weight, port, target),
             Data::Unknown(unknown) => write!(f, "unknown ({:?})", unknown),
             Data::Invalid(invalid) => write!(f, "invalid ({:?})", invalid),
         }
