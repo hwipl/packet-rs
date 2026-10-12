@@ -64,7 +64,7 @@ pub fn parse_labels(raw: &[u8], offset: usize) -> Result<(Vec<usize>, usize)> {
     }
 
     // parsing successful
-    return Ok((label_indexes, next_index));
+    Ok((label_indexes, next_index))
 }
 
 // get name from labels in raw packet
@@ -76,11 +76,11 @@ pub fn get_name_from_labels(raw: &[u8], label_indexes: &Vec<usize>) -> Result<St
 
         // read domain name part from current label
         let j = i + 1;
-        let part = str::from_utf8(&raw[j..j + length]).map_err(|e| DnsError::LabelUtf8(e))?;
+        let part = str::from_utf8(&raw[j..j + length]).map_err(DnsError::LabelUtf8)?;
         name.push_str(part);
         name += ".";
     }
-    return Ok(name);
+    Ok(name)
 }
 
 // get the name directly from labels in raw packet starting at offset

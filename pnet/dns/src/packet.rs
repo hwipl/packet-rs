@@ -168,7 +168,7 @@ impl<'a> DnsPacket<'a> {
         }
 
         let mut packet = DnsPacket {
-            raw: raw,
+            raw,
             questions: Vec::new(),
             answers: Vec::new(),
             authorities: Vec::new(),
@@ -212,7 +212,7 @@ impl<'a> DnsPacket<'a> {
             self.additionals.push(a);
         }
 
-        return Ok(());
+        Ok(())
     }
 
     // get identification field from packet
@@ -281,7 +281,7 @@ impl<'a> DnsPacket<'a> {
     }
 
     // get nth question from packet
-    pub fn get_question(&self, nth: usize) -> Option<&DnsQuestion> {
+    pub fn get_question(&self, nth: usize) -> Option<&DnsQuestion<'_>> {
         if nth >= self.questions.len() {
             return None;
         }
@@ -289,7 +289,7 @@ impl<'a> DnsPacket<'a> {
     }
 
     // get nth answer from packet
-    pub fn get_answer(&self, nth: usize) -> Option<&DnsAnswer> {
+    pub fn get_answer(&self, nth: usize) -> Option<&DnsAnswer<'_>> {
         if nth >= self.answers.len() {
             return None;
         }
@@ -297,7 +297,7 @@ impl<'a> DnsPacket<'a> {
     }
 
     // get nth authority from packet
-    pub fn get_authority(&self, nth: usize) -> Option<&DnsAuthority> {
+    pub fn get_authority(&self, nth: usize) -> Option<&DnsAuthority<'_>> {
         if nth >= self.authorities.len() {
             return None;
         }
@@ -305,7 +305,7 @@ impl<'a> DnsPacket<'a> {
     }
 
     // get nth additional from packet
-    pub fn get_additional(&self, nth: usize) -> Option<&DnsAdditional> {
+    pub fn get_additional(&self, nth: usize) -> Option<&DnsAdditional<'_>> {
         if nth >= self.additionals.len() {
             return None;
         }

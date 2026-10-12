@@ -111,8 +111,8 @@ fn listen_tcp() {
 
 // run udp and tcp listener in separate threads and handle dns packets
 pub fn listen() {
-    let udp = std::thread::spawn(|| listen_udp());
-    let tcp = std::thread::spawn(|| listen_tcp());
+    let udp = std::thread::spawn(listen_udp);
+    let tcp = std::thread::spawn(listen_tcp);
     let _ = udp.join();
     let _ = tcp.join();
 }

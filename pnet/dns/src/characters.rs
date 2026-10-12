@@ -16,12 +16,12 @@ pub fn get_character_strings(raw: &[u8]) -> Result<Vec<String>> {
         i += 1;
 
         // try to read character string
-        let chars = str::from_utf8(&raw[i..i + length]).map_err(|e| DnsError::CharactersUtf8(e))?;
+        let chars = str::from_utf8(&raw[i..i + length]).map_err(DnsError::CharactersUtf8)?;
 
         // add string
         strings.push(String::from(chars));
         i += length;
     }
 
-    return Ok(strings);
+    Ok(strings)
 }

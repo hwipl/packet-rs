@@ -190,7 +190,7 @@ pub enum Data<'a> {
 }
 
 impl<'a> Data<'a> {
-    fn parse(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Result<Data> {
+    fn parse(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Result<Data<'_>> {
         let i = offset;
 
         // check offset and data length
@@ -264,7 +264,7 @@ impl<'a> Data<'a> {
         }
     }
 
-    fn get(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Data {
+    fn get(raw: &[u8], offset: usize, length: usize, typ: Type, class: Class) -> Data<'_> {
         match Data::parse(raw, offset, length, typ, class) {
             Ok(data) => data,
             Err(_) => Data::Invalid(&raw[offset..offset + std::cmp::min(length, raw.len())]),
@@ -341,10 +341,10 @@ impl<'a> DnsRecord<'a> {
 
         // returm dns record
         Ok(DnsRecord {
-            raw: raw,
-            offset: offset,
-            label_indexes: label_indexes,
-            next_index: next_index,
+            raw,
+            offset,
+            label_indexes,
+            next_index,
         })
     }
 
@@ -386,7 +386,7 @@ impl<'a> DnsRecord<'a> {
 
     // get the data field from raw packet bytes;
     // note: do not use in dns question
-    pub fn get_data(&self) -> Data {
+    pub fn get_data(&self) -> Data<'_> {
         let i = self.next_index + 10;
         Data::get(
             self.raw,
@@ -512,7 +512,7 @@ impl<'a> DnsAnswer<'a> {
     }
 
     // get the data field from raw packet bytes;
-    fn get_data(&self) -> Data {
+    fn get_data(&self) -> Data<'_> {
         self.record.get_data()
     }
 
