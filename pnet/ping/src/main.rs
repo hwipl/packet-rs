@@ -40,13 +40,13 @@ fn get_interface_ip(interface: &NetworkInterface) -> Ipv4Addr {
             _ => unreachable!(),
         })
         .unwrap();
-    return ip;
+    ip
 }
 
 // create ping/echo request packet
 fn create_ping_packet(interface: &NetworkInterface) -> [u8; PACKET_SIZE] {
     // get source ip address
-    let source_ip = get_interface_ip(&interface);
+    let source_ip = get_interface_ip(interface);
 
     // create echo request packet
     let mut echo_buffer = [0u8; ECHO_SIZE];
@@ -75,7 +75,7 @@ fn create_ping_packet(interface: &NetworkInterface) -> [u8; PACKET_SIZE] {
     ethernet_packet.set_ethertype(EtherTypes::Ipv4);
     ethernet_packet.set_payload(ipv4_packet.packet_mut());
 
-    return ethernet_buffer;
+    ethernet_buffer
 }
 
 // send a ping packet
